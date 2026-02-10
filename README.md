@@ -12,14 +12,7 @@ Originally based on [Vosk](https://alphacephei.com/vosk/android), the app has mo
 
 ## Setup
 
-API keys are required. Add them to `local.properties` in the project root:
-
-```properties
-SARVAM_API_SUBSCRIPTION_KEY=your_sarvam_key
-OPENAI_API_KEY=your_openai_key
-```
-
-Only backends with a configured API key will be available in the app.
+API keys are configured at runtime in the app. Go to **Settings > API** tab to enter your OpenAI and/or Sarvam API keys. Only backends with a configured API key will be available.
 
 ## Build
 

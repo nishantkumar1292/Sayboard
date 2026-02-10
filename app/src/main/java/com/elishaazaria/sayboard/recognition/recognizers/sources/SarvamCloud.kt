@@ -15,7 +15,9 @@ import java.util.concurrent.Executor
 
 class SarvamCloud(
     private val apiKey: String,
-    private val displayLocale: Locale
+    private val displayLocale: Locale,
+    private val mode: String = "translit",
+    private val languageCode: String = "unknown"
 ) : RecognizerSource {
 
     companion object {
@@ -49,7 +51,7 @@ class SarvamCloud(
             handler.post {
                 if (isValidKey) {
                     Log.d(TAG, "Creating SarvamCloudRecognizer")
-                    myRecognizer = SarvamCloudRecognizer(apiKey, displayLocale)
+                    myRecognizer = SarvamCloudRecognizer(apiKey, displayLocale, mode, languageCode)
                     stateMLD.postValue(RecognizerState.READY)
                     Log.d(TAG, "Recognizer created, closed state now: $closed")
                 } else {

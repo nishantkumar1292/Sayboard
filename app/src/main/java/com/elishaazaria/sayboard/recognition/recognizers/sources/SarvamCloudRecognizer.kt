@@ -13,17 +13,16 @@ import java.util.concurrent.TimeUnit
 
 class SarvamCloudRecognizer(
     private val apiKey: String,
-    override val locale: Locale?
+    override val locale: Locale?,
+    private val mode: String = "translit",
+    private val languageCode: String = "unknown"
 ) : Recognizer {
 
     companion object {
         private const val TAG = "SarvamCloudRecognizer"
         private const val SARVAM_API_URL = "https://api.sarvam.ai/speech-to-text"
 
-        // Sarvam API parameters (per docs.sarvam.ai)
         private const val MODEL = "saaras:v3"  // Advanced model with flexible output modes
-        private const val MODE = "translit"    // Roman/Romanized output for Hinglish
-        private const val LANGUAGE_CODE = "unknown"  // Auto-detect
     }
 
     override val sampleRate: Float = 16000f
@@ -97,8 +96,8 @@ class SarvamCloudRecognizer(
                     wavBytes.toRequestBody("audio/wav".toMediaType())
                 )
                 .addFormDataPart("model", MODEL)
-                .addFormDataPart("mode", MODE)
-                .addFormDataPart("language_code", LANGUAGE_CODE)
+                .addFormDataPart("mode", mode)
+                .addFormDataPart("language_code", languageCode)
                 .addFormDataPart("with_timestamps", "false")
                 .build()
 

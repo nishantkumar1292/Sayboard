@@ -15,6 +15,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +34,7 @@ import com.elishaazaria.sayboard.ui.GrantPermissionUi
 import com.elishaazaria.sayboard.ui.KeyboardSettingsUi
 import com.elishaazaria.sayboard.ui.LogicSettingsUi
 import com.elishaazaria.sayboard.ui.ModelsSettingsUi
+import com.elishaazaria.sayboard.ui.ApiSettingsUi
 import com.elishaazaria.sayboard.ui.UISettingsUi
 
 class SettingsActivity : ComponentActivity() {
@@ -76,7 +78,8 @@ class SettingsActivity : ComponentActivity() {
             stringResource(id = R.string.title_models),
             stringResource(id = R.string.title_ui),
             stringResource(id = R.string.title_keyboard),
-            stringResource(id = R.string.title_logic)
+            stringResource(id = R.string.title_logic),
+            stringResource(id = R.string.title_api)
         )
         var selectedIndex by remember {
             mutableIntStateOf(0)
@@ -109,6 +112,11 @@ class SettingsActivity : ComponentActivity() {
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = null
                                 )
+
+                                4 -> Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null
+                                )
                             }
                         }, label = {
                             Text(text = tab)
@@ -126,6 +134,7 @@ class SettingsActivity : ComponentActivity() {
                     1 -> UISettingsUi()
                     2 -> KeyboardSettingsUi()
                     3 -> LogicSettingsUi(this@SettingsActivity)
+                    4 -> ApiSettingsUi()
                 }
             }
         }

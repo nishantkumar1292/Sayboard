@@ -138,4 +138,26 @@ class AppPrefs : PreferenceModel("example-app-preferences") {
         key = "b_whisper_transliterate_to_roman",
         default = false
     )
+
+    // API Keys (user-configured at runtime)
+    val openaiApiKey = string(
+        key = "s_openai_api_key",
+        default = ""
+    )
+
+    val sarvamApiKey = string(
+        key = "s_sarvam_api_key",
+        default = ""
+    )
+
+    // Sarvam settings
+    val sarvamMode = string(
+        key = "s_sarvam_mode",
+        default = "translit"
+    )
+
+    val sarvamLanguage = string(
+        key = "s_sarvam_language",
+        default = "unknown"
+    )
 }

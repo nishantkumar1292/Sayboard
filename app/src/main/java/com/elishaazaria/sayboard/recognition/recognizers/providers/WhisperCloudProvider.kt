@@ -2,7 +2,6 @@ package com.elishaazaria.sayboard.recognition.recognizers.providers
 
 import android.content.Context
 import android.util.Log
-import com.elishaazaria.sayboard.BuildConfig
 import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
@@ -19,7 +18,7 @@ class WhisperCloudProvider(private val context: Context) : RecognizerSourceProvi
 
     override fun getInstalledModels(): List<InstalledModelReference> {
         // Only show cloud option if API key is configured
-        val apiKey = BuildConfig.OPENAI_API_KEY
+        val apiKey = prefs.openaiApiKey.get()
         if (apiKey.isEmpty()) {
             return emptyList()
         }
@@ -38,7 +37,7 @@ class WhisperCloudProvider(private val context: Context) : RecognizerSourceProvi
         Log.d(TAG, "recognizerSourceForModel called for: ${localModel.type}")
         if (localModel.type != ModelType.WhisperCloud) return null
 
-        val apiKey = BuildConfig.OPENAI_API_KEY
+        val apiKey = prefs.openaiApiKey.get()
         Log.d(TAG, "API key length: ${apiKey.length}, empty: ${apiKey.isEmpty()}")
         if (apiKey.isEmpty()) {
             Log.e(TAG, "API key is empty!")

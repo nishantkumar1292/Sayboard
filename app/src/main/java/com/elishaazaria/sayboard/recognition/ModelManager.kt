@@ -195,17 +195,16 @@ class ModelManager(
     private var pausedState = false
 
     fun reloadModels() {
-
-        // TODO: make sure we actually need this
-//        val newModels = prefs.modelsOrder.get()
-//        if (newModels == recognizerSourceModels) {
-//            if (autoStart) {
-//                if (currentRecognizerSource != null) {
-//                    start()
-//                }
-//            }
-//            return
-//        }
+        // Sync installed models into modelsOrder (handles newly added/removed API keys)
+        val currentModels = prefs.modelsOrder.get().toMutableList()
+        val installedModels = recognizerSourceProviders.installedModels()
+        currentModels.removeAll { it !in installedModels }
+        for (model in installedModels) {
+            if (model !in currentModels) {
+                currentModels.add(model)
+            }
+        }
+        prefs.modelsOrder.set(currentModels)
 
         val newModels = prefs.modelsOrder.get()
         if (newModels == recognizerSourceModels)

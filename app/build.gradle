@@ -5,13 +5,6 @@ apply plugin: 'com.mikepenz.aboutlibraries.plugin'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 
-// Load local.properties for API keys
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localProperties.load(new FileInputStream(localPropertiesFile))
-}
-
 android {
     compileSdk 35
     defaultConfig {
@@ -20,12 +13,6 @@ android {
         targetSdkVersion 35
         versionCode 402010
         versionName "v4.2.1"
-
-        // OpenAI API key from local.properties
-        buildConfigField "String", "OPENAI_API_KEY", "\"${localProperties.getProperty('OPENAI_API_KEY', '')}\""
-
-        // Sarvam API subscription key from local.properties
-        buildConfigField "String", "SARVAM_API_SUBSCRIPTION_KEY", "\"${localProperties.getProperty('SARVAM_API_SUBSCRIPTION_KEY', '')}\""
     }
     buildTypes {
         release {

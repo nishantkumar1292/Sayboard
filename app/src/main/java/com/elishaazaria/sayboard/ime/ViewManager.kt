@@ -328,16 +328,27 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 // Status text
+                                val statusText = when (stateS.value) {
+                                    STATE_INITIAL, STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
+                                    STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_ready)
+                                    STATE_LISTENING -> stringResource(id = R.string.mic_info_recording)
+                                    else -> stringResource(id = errorMessageS.value)
+                                }
+                                val isError = stateS.value == STATE_ERROR
                                 Text(
-                                    text = when (stateS.value) {
-                                        STATE_INITIAL, STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
-                                        STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_ready)
-                                        STATE_LISTENING -> stringResource(id = R.string.mic_info_recording)
-                                        else -> stringResource(id = errorMessageS.value)
+                                    text = if (isError && errorMessageS.value == R.string.mic_error_no_recognizers) {
+                                        stringResource(id = R.string.mic_error_no_recognizers_tap_to_configure)
+                                    } else {
+                                        statusText
                                     },
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = stateColor.copy(alpha = 0.9f)
+                                    color = stateColor.copy(alpha = 0.9f),
+                                    modifier = if (isError) {
+                                        Modifier.clickable { listener?.settingsClicked() }
+                                    } else {
+                                        Modifier
+                                    }
                                 )
                             }
 

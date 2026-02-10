@@ -13,6 +13,7 @@
 
     <string name="toast_error_no_previous_ime">No previous IME!</string>
     <string name="mic_error_no_recognizers">No Recognizers installed!</string>
+    <string name="mic_error_no_recognizers_tap_to_configure">No Recognizers installed!\nTap here to configure API keys</string>
     <string name="mic_error_no_permission">Microphone permission not granted!</string>
     <string name="mic_error_recognizer_error">Recognizer error</string>
     <string name="mic_error_mic_in_use">Microphone is already in use!</string>
@@ -108,4 +109,28 @@
     <!--  Sarvam Cloud  -->
     <string name="error_sarvam_missing_key">Missing Sarvam API subscription key</string>
     <string name="error_sarvam_api_failure">Sarvam API request failed</string>
+
+    <!--  API Settings  -->
+    <string name="title_api">API</string>
+    <string name="api_keys_header">API Keys</string>
+    <string name="api_key_not_set">Not set</string>
+
+    <string name="openai_api_key_title">OpenAI API Key</string>
+    <string name="sarvam_api_key_title">Sarvam API Key</string>
+
+    <string name="whisper_settings_header">Whisper Settings</string>
+    <string name="whisper_language_title">Language Code</string>
+    <string name="whisper_language_summary">ISO language code (e.g. en, hi). Empty for auto-detect.</string>
+    <string name="whisper_prompt_title">Transcription Prompt</string>
+    <string name="whisper_prompt_summary">Guide transcription style (e.g. Romanized Hindi examples)</string>
+    <string name="whisper_transliterate_title">Transliterate to Roman</string>
+    <string name="whisper_transliterate_summary">Convert Devanagari output to Roman script</string>
+
+    <string name="sarvam_settings_header">Sarvam Settings</string>
+    <string name="sarvam_mode_title">Output Mode</string>
+    <string name="sarvam_language_title">Language Code</string>
+    <string name="sarvam_language_summary">Language code (e.g. hi-IN). \"unknown\" for auto-detect.</string>
+
+    <string name="button_save">Save</string>
+    <string name="button_clear">Clear</string>
 </resources>
