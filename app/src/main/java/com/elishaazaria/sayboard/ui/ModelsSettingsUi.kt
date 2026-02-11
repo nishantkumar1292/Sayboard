@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.SettingsActivity
 import com.elishaazaria.sayboard.recognition.recognizers.providers.Providers
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import dev.patrickgold.jetpref.datastore.model.observeAsState
 import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.detectReorderAfterLongPress
@@ -35,7 +35,7 @@ import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
 class ModelsSettingsUi(private val activity: SettingsActivity) {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
 
     private val recognizerSourceProviders = Providers(activity)
 

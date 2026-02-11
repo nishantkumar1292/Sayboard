@@ -14,7 +14,7 @@ import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.ime.ViewManager
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.providers.Providers
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.Executor
@@ -24,7 +24,7 @@ class ModelManager(
     private val context: Context,
     private val listener: Listener
 ) {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
     private var speechService: MySpeechService? = null
     var isRunning = false
         private set

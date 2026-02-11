@@ -1,4 +1,4 @@
-<p>Sayboard é um teclado de voz (IME) de código aberto para Android que usa reconhecimento de fala na nuvem. Dois serviços são suportados:</p>
+<p>SpeakKeys é um teclado de voz (IME) de código aberto para Android que usa reconhecimento de fala na nuvem. Dois serviços são suportados:</p>
 <ul>
   <li><strong>Sarvam AI</strong> - otimizado para reconhecimento de Hinglish (Hindi + Inglês)</li>
   <li><strong>OpenAI Whisper</strong> - reconhecimento de fala multilíngue</li>
@@ -6,7 +6,7 @@
 <br/>
 <p>As chaves de API são configuradas em Configurações > aba API. Somente serviços com uma chave configurada ficam disponíveis.</p>
 <br/>
-<p>O Sayboard usa as seguintes permissões:</p>
+<p>O SpeakKeys usa as seguintes permissões:</p>
 <ul>
   <li>INTERNET - necessária para reconhecimento de fala na nuvem. O áudio é enviado para Sarvam AI e/ou OpenAI para transcrição.</li>
   <li>RECORD_AUDIO - bem, este é um teclado de voz.</li>

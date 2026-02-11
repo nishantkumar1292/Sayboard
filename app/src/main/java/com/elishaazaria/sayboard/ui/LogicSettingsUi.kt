@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.data.KeepScreenAwakeMode
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import com.mikepenz.aboutlibraries.ui.compose.LibrariesContainer
 import dev.patrickgold.jetpref.datastore.ui.ListPreference
 import dev.patrickgold.jetpref.datastore.ui.ListPreferenceEntry
@@ -43,7 +43,7 @@ fun getEnabledInputMethodPreferenceEntries(context: Context): List<ListPreferenc
 }
 
 @Composable
-fun LogicSettingsUi(context: Context) = ScrollablePreferenceLayout(sayboardPreferenceModel()) {
+fun LogicSettingsUi(context: Context) = ScrollablePreferenceLayout(speakKeysPreferenceModel()) {
     ListPreference(
         listPref = prefs.logicKeepScreenAwake,
         title = stringResource(id = R.string.logic_keep_screen_awake_title),

@@ -33,7 +33,7 @@ android {
     android.applicationVariants.configureEach { variant ->
         variant.outputs.configureEach { output ->
             var abi_name = output.getFilter(output.ABI) ? output.getFilter(output.ABI) : "Universal"
-            output.outputFileName = "Sayboard_${abi_name}.apk"
+            output.outputFileName = "SpeakKeys_${abi_name}.apk"
         }
     }
 

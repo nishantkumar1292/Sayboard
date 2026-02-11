@@ -93,7 +93,7 @@ import com.elishaazaria.sayboard.AppPrefs
 import com.elishaazaria.sayboard.Constants
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerState
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import com.elishaazaria.sayboard.theme.DarkSurfaceVariant
 import com.elishaazaria.sayboard.theme.ErrorRed
 import com.elishaazaria.sayboard.theme.ListeningBlue
@@ -111,7 +111,7 @@ import kotlinx.coroutines.launch
 @SuppressLint("ViewConstructor")
 class ViewManager(private val ime: Context) : AbstractComposeView(ime),
     Observer<RecognizerState> {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
     val stateLD = MutableLiveData(STATE_INITIAL)
     val errorMessageLD = MutableLiveData(R.string.mic_info_error)
     private var listener: Listener? = null

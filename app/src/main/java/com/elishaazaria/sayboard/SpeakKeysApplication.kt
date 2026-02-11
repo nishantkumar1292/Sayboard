@@ -4,8 +4,8 @@ import android.app.Application
 import com.elishaazaria.sayboard.AppCtx.setAppCtx
 import dev.patrickgold.jetpref.datastore.JetPref
 
-class SayboardApplication : Application() {
-    private val prefs by sayboardPreferenceModel()
+class SpeakKeysApplication : Application() {
+    private val prefs by speakKeysPreferenceModel()
     override fun onCreate() {
         super.onCreate()
 

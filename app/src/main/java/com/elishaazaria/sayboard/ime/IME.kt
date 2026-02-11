@@ -33,11 +33,11 @@ import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.data.KeepScreenAwakeMode
 import com.elishaazaria.sayboard.recognition.ModelManager
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import kotlin.math.roundToInt
 
 class IME : InputMethodService(), ModelManager.Listener {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
 
     private var hasMicPermission: Boolean = false
 

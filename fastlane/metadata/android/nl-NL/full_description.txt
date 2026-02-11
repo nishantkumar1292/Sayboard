@@ -1,4 +1,4 @@
-<p>Sayboard is een opensource spraakgestuurd toetsenbord (IME) voor Android dat gebruikmaakt van cloudgebaseerde spraakherkenning. Twee diensten worden ondersteund:</p>
+<p>SpeakKeys is een opensource spraakgestuurd toetsenbord (IME) voor Android dat gebruikmaakt van cloudgebaseerde spraakherkenning. Twee diensten worden ondersteund:</p>
 <ul>
   <li><strong>Sarvam AI</strong> - geoptimaliseerd voor Hinglish (Hindi + Engels) spraakherkenning</li>
   <li><strong>OpenAI Whisper</strong> - meertalige spraakherkenning</li>
@@ -6,7 +6,7 @@
 <br/>
 <p>API-sleutels worden geconfigureerd in Instellingen > tabblad API. Alleen diensten met een geconfigureerde sleutel zijn beschikbaar.</p>
 <br/>
-<p>Sayboard maakt gebruik van de volgende toegangsrechten:</p>
+<p>SpeakKeys maakt gebruik van de volgende toegangsrechten:</p>
 <ul>
   <li>INTERNET - vereist voor cloudgebaseerde spraakherkenning. Audio wordt verzonden naar Sarvam AI en/of OpenAI voor transcriptie.</li>
   <li>RECORD_AUDIO - tja, dit is een spraakgestuurd toetsenbord.</li>

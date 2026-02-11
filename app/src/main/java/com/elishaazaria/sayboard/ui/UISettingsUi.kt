@@ -3,14 +3,14 @@ package com.elishaazaria.sayboard.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.elishaazaria.sayboard.R
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import dev.patrickgold.jetpref.datastore.model.observeAsState
 import dev.patrickgold.jetpref.datastore.ui.PreferenceGroup
 import dev.patrickgold.jetpref.datastore.ui.ScrollablePreferenceLayout
 import dev.patrickgold.jetpref.datastore.ui.SwitchPreference
 
 @Composable
-fun UISettingsUi() = ScrollablePreferenceLayout(sayboardPreferenceModel()) {
+fun UISettingsUi() = ScrollablePreferenceLayout(speakKeysPreferenceModel()) {
     PreferenceGroup(title = stringResource(id = R.string.ui_light_theme_header)) {
         SwitchPreference(
             pref = prefs.uiDayForegroundMaterialYou,

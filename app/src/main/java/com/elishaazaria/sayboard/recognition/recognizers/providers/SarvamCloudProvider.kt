@@ -5,11 +5,11 @@ import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.sources.SarvamCloud
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import java.util.Locale
 
 class SarvamCloudProvider(private val context: Context) : RecognizerSourceProvider {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
 
     override fun getInstalledModels(): List<InstalledModelReference> {
         // Only show Sarvam option if API key is configured

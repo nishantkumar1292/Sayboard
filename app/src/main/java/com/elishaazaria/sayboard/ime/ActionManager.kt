@@ -10,10 +10,10 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.SettingsActivity
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 
 class ActionManager(private val ime: IME, private val viewManager: ViewManager) {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
     private val mInputMethodManager: InputMethodManager =
         ime.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
     private var selectionStart = 0

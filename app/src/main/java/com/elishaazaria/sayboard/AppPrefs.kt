@@ -13,7 +13,7 @@ import dev.patrickgold.jetpref.datastore.model.PreferenceModel
 
 // Defining a getter function for easy retrieval of the AppPrefs model.
 // You can name this however you want, the convention is <projectName>PreferenceModel
-fun sayboardPreferenceModel() = JetPref.getOrCreatePreferenceModel(AppPrefs::class, ::AppPrefs)
+fun speakKeysPreferenceModel() = JetPref.getOrCreatePreferenceModel(AppPrefs::class, ::AppPrefs)
 
 // Defining a preference model for our app prefs
 // The name we give here is the file name of the preferences and is saved

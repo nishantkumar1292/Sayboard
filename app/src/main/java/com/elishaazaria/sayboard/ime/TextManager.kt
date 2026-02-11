@@ -2,10 +2,10 @@ package com.elishaazaria.sayboard.ime
 
 import android.util.Log
 import com.elishaazaria.sayboard.recognition.ModelManager
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 
 class TextManager(private val ime: IME, private val modelManager: ModelManager) {
-    private val prefs by sayboardPreferenceModel()
+    private val prefs by speakKeysPreferenceModel()
 
     private var addSpace = false
     private var capitalize = true

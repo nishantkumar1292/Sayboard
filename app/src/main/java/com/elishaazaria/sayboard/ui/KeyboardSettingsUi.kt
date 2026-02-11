@@ -35,7 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.elishaazaria.sayboard.AppPrefs
 import com.elishaazaria.sayboard.R
-import com.elishaazaria.sayboard.sayboardPreferenceModel
+import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import com.elishaazaria.sayboard.utils.Key
 import dev.patrickgold.jetpref.datastore.model.PreferenceData
 import dev.patrickgold.jetpref.datastore.model.observeAsState
@@ -53,7 +53,7 @@ import org.burnoutcrew.reorderable.reorderable
 
 @OptIn(ExperimentalJetPrefDatastoreUi::class)
 @Composable
-fun KeyboardSettingsUi() = ScrollablePreferenceLayout(sayboardPreferenceModel()) {
+fun KeyboardSettingsUi() = ScrollablePreferenceLayout(speakKeysPreferenceModel()) {
     PreferenceGroup(title = stringResource(id = R.string.keyboard_height_header)) {
         DialogSliderPreference(
             pref = prefs.keyboardHeightPortrait,

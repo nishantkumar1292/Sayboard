@@ -1,9 +1,9 @@
 <img align="left" width="80" height="80"
 src="app/src/main/ic_launcher-playstore.png" alt="App icon">
 
-# Sayboard
+# SpeakKeys
 
-Sayboard is an open-source Android voice keyboard (IME) that uses cloud-based speech recognition. It supports two backends:
+SpeakKeys is an open-source Android voice keyboard (IME) that uses cloud-based speech recognition. It supports two backends:
 
 - **Sarvam AI** - optimized for Hinglish (Hindi + English) speech recognition
 - **OpenAI Whisper** - multilingual speech recognition
