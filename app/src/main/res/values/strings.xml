@@ -12,8 +12,8 @@
     <string name="mic_info_recording">Say something</string>
 
     <string name="toast_error_no_previous_ime">No previous IME!</string>
-    <string name="mic_error_no_recognizers">No Recognizers installed!</string>
-    <string name="mic_error_no_recognizers_tap_to_configure">No Recognizers installed!\nTap here to configure API keys</string>
+    <string name="mic_error_no_recognizers">No recognizers configured yet.\nTap API (bottom right) and add one or more API keys (OpenAI or Sarvam).</string>
+    <string name="mic_error_no_recognizers_tap_to_configure">No recognizers configured yet.\nTap API (bottom right) and add one or more API keys (OpenAI or Sarvam).</string>
     <string name="mic_error_no_permission">Microphone permission not granted!</string>
     <string name="mic_error_recognizer_error">Recognizer error</string>
     <string name="mic_error_mic_in_use">Microphone is already in use!</string>

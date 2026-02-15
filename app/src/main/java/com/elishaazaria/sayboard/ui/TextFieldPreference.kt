@@ -17,16 +17,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.elishaazaria.sayboard.R
 import dev.patrickgold.jetpref.datastore.model.PreferenceData
-import dev.patrickgold.jetpref.material.ui.JetPrefListItem
+import dev.patrickgold.jetpref.datastore.model.PreferenceModel
+import dev.patrickgold.jetpref.datastore.ui.Preference
+import dev.patrickgold.jetpref.datastore.ui.PreferenceUiScope
 
 @Composable
-fun TextFieldPreference(
+fun <T : PreferenceModel> PreferenceUiScope<T>.TextFieldPreference(
     pref: PreferenceData<String>,
     title: String,
     summary: String = "",
@@ -39,22 +40,16 @@ fun TextFieldPreference(
     val displaySummary = if (isPassword && currentValue.isNotEmpty()) {
         "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
     } else if (currentValue.isNotEmpty()) {
-        currentValue
+        currentValue.replace('\n', ' ')
     } else {
         summary.ifEmpty { stringResource(R.string.api_key_not_set) }
     }
+    val compactSummary = if (displaySummary.length > 80) "${displaySummary.take(77)}..." else displaySummary
 
-    JetPrefListItem(
-        modifier = Modifier.clickable(
-            role = Role.Button,
-            onClick = {
-                editValue = currentValue
-                showDialog = true
-            },
-        ),
-        text = title,
-        secondaryText = displaySummary,
-    )
+    Preference(title = title, summary = compactSummary) {
+        editValue = currentValue
+        showDialog = true
+    }
 
     if (showDialog) {
         AlertDialog(
