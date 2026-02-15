@@ -36,3 +36,6 @@ google-services.json
 *.md5
 *.lst
 /app/release/
+
+# todo
+TODO.md
