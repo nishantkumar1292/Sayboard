@@ -50,13 +50,6 @@ fun LogicSettingsUi(context: Context) = ScrollablePreferenceLayout(speakKeysPref
         entries = KeepScreenAwakeMode.listEntries()
     )
     SwitchPreference(
-        pref = prefs.logicListenImmediately,
-        title = stringResource(id = R.string.logic_listen_immediately_title),
-        summary = stringResource(
-            id = R.string.logic_listen_immediately_summery
-        )
-    )
-    SwitchPreference(
         pref = prefs.logicAutoSwitchBack,
         title = stringResource(id = R.string.logic_auto_switch_back_title),
         summary = stringResource(

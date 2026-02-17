@@ -17,14 +17,15 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
 import android.media.AudioDeviceInfo
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.text.InputType
 import android.util.Log
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.core.app.ActivityCompat
@@ -56,6 +57,22 @@ class IME : InputMethodService(), ModelManager.Listener {
 
     var isRichTextEditor = true
         private set
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private var micPressed = false
+    private var micProcessing = false
+    private val deferredResults = mutableListOf<String>()
+    private val holdWarningRunnable = Runnable {
+        if (micPressed && modelManager.isRunning) {
+            viewManager.stateLD.postValue(ViewManager.STATE_LIMIT_WARNING)
+        }
+    }
+    private val holdAutoStopRunnable = Runnable {
+        if (micPressed && modelManager.isRunning) {
+            micPressed = false
+            startProcessing()
+            modelManager.stop()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -71,7 +88,7 @@ class IME : InputMethodService(), ModelManager.Listener {
         checkMicrophonePermission()
 
         modelManager = ModelManager(this, this)
-        modelManager.initializeFirstLocale(prefs.logicListenImmediately.get())
+        modelManager.initializeFirstLocale(false)
 
         textManager = TextManager(this, modelManager)
 
@@ -97,7 +114,7 @@ class IME : InputMethodService(), ModelManager.Listener {
         Log.d("IME", "@onBindInput")
 
         modelManager.reloadModels()
-        modelManager.initializeFirstLocale(prefs.logicListenImmediately.get())
+        modelManager.initializeFirstLocale(false)
     }
 
     override fun onWindowShown() {
@@ -144,6 +161,10 @@ class IME : InputMethodService(), ModelManager.Listener {
         Log.d("IME", "@onFinishInputView. finishedInput: $finishingInput")
 
         // text input has ended
+        micPressed = false
+        micProcessing = false
+        deferredResults.clear()
+        cancelHoldTimers()
         setKeepScreenOn(false)
         modelManager.stop()
         if (prefs.logicAutoSwitchBack.get()) {
@@ -166,33 +187,29 @@ class IME : InputMethodService(), ModelManager.Listener {
     }
 
     private val viewManagerListener = object : ViewManager.Listener {
-        override fun micClick() {
+        override fun micPressStart() {
+            if (micProcessing) return
             if (!hasMicPermission || modelManager.openSettingsOnMic) {
                 // errors! open settings
                 actionManager.openSettings()
-            } else if (modelManager.isRunning) {
-                if (modelManager.isPaused) {
-                    modelManager.pause(false)
-                    if (prefs.logicKeepScreenAwake.get() == KeepScreenAwakeMode.WHEN_LISTENING)
-                        setKeepScreenOn(true)
-                } else {
-                    // Stop to trigger transcription for batch/cloud recognizers
-                    modelManager.stop()
-                    // Don't turn off screen here - wait for onFinalResult
-                    // The transcription (especially for cloud APIs) may take several seconds
-                }
-            } else {
+                return
+            }
+            micPressed = true
+            deferredResults.clear()
+            if (!modelManager.isRunning) {
                 modelManager.start()
                 if (prefs.logicKeepScreenAwake.get() == KeepScreenAwakeMode.WHEN_LISTENING)
                     setKeepScreenOn(true)
             }
         }
 
-        override fun micLongClick(): Boolean {
-            val imeManager =
-                applicationContext.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            imeManager.showInputMethodPicker()
-            return true
+        override fun micPressEnd() {
+            micPressed = false
+            cancelHoldTimers()
+            if (modelManager.isRunning) {
+                startProcessing()
+                modelManager.stop()
+            }
         }
 
         override fun backClicked() {
@@ -248,7 +265,7 @@ class IME : InputMethodService(), ModelManager.Listener {
         }
 
         override fun modelClicked() {
-            modelManager.switchToNextRecognizer(prefs.logicListenImmediately.get())
+            modelManager.switchToNextRecognizer(false)
         }
 
         override fun settingsClicked() {
@@ -293,6 +310,10 @@ class IME : InputMethodService(), ModelManager.Listener {
         super.onDestroy()
         Log.d("IME", "@onDestroy")
 
+        micPressed = false
+        micProcessing = false
+        deferredResults.clear()
+        cancelHoldTimers()
         lifecycleOwner.onDestroy()
         modelManager.onDestroy()
     }
@@ -326,32 +347,48 @@ class IME : InputMethodService(), ModelManager.Listener {
     }
 
     override fun onResult(text: String?) {
-        if (text.isNullOrEmpty()) return
-        textManager.onText(text, TextManager.Mode.STANDARD)
+        val chunk = text?.trim().orEmpty()
+        if (chunk.isNotEmpty() && (deferredResults.isEmpty() || deferredResults.last() != chunk)) {
+            deferredResults.add(chunk)
+        }
     }
 
     override fun onFinalResult(text: String?) {
-        if (text.isNullOrEmpty()) return
-        textManager.onText(text, TextManager.Mode.FINAL)
+        finishProcessing()
+        val finalText = mergeDeferredResults(text)
+        if (finalText.isEmpty()) return
+        textManager.onText(finalText, TextManager.Mode.FINAL)
     }
 
     override fun onPartialResult(partialText: String?) {
-        if (partialText.isNullOrEmpty()) return
-        textManager.onText(partialText, TextManager.Mode.PARTIAL)
+        // Push-to-talk hides partials while holding.
     }
 
     override fun onStateChanged(state: ModelManager.State) {
+        if (state != ModelManager.State.STATE_LISTENING) {
+            cancelHoldTimers()
+        }
         if (state == ModelManager.State.STATE_STOPPED) {
             currentRecognizerSource?.stateLD?.removeObserver(viewManager)
-            // Update UI to show stopped/ready state
-            viewManager.stateLD.postValue(ViewManager.STATE_READY)
+            viewManager.stateLD.postValue(
+                if (micProcessing) ViewManager.STATE_PROCESSING else ViewManager.STATE_READY
+            )
         } else {
             viewManager.stateLD.postValue(
                 when (state) {
                     ModelManager.State.STATE_INITIAL -> ViewManager.STATE_INITIAL
                     ModelManager.State.STATE_LOADING -> ViewManager.STATE_LOADING
                     ModelManager.State.STATE_READY -> ViewManager.STATE_READY
-                    ModelManager.State.STATE_LISTENING -> ViewManager.STATE_LISTENING
+                    ModelManager.State.STATE_LISTENING -> {
+                        if (micPressed) {
+                            scheduleHoldTimers()
+                            ViewManager.STATE_LISTENING
+                        } else {
+                            startProcessing()
+                            modelManager.stop()
+                            ViewManager.STATE_PROCESSING
+                        }
+                    }
                     ModelManager.State.STATE_PAUSED -> ViewManager.STATE_PAUSED
                     ModelManager.State.STATE_ERROR -> ViewManager.STATE_ERROR
                     else -> TODO()
@@ -361,6 +398,8 @@ class IME : InputMethodService(), ModelManager.Listener {
     }
 
     override fun onError(type: ModelManager.ErrorType) {
+        finishProcessing()
+        deferredResults.clear()
         viewManager.errorMessageLD.postValue(
             when (type) {
                 ModelManager.ErrorType.MIC_IN_USE -> R.string.mic_error_mic_in_use
@@ -370,6 +409,8 @@ class IME : InputMethodService(), ModelManager.Listener {
     }
 
     override fun onError(e: Exception?) {
+        finishProcessing()
+        deferredResults.clear()
         viewManager.errorMessageLD.postValue(R.string.mic_error_recognizer_error)
         viewManager.stateLD.postValue(ViewManager.STATE_ERROR)
     }
@@ -382,10 +423,55 @@ class IME : InputMethodService(), ModelManager.Listener {
     }
 
     override fun onTimeout() {
-        viewManager.stateLD.postValue(ViewManager.STATE_PAUSED)
+        finishProcessing()
+        deferredResults.clear()
+        viewManager.stateLD.postValue(ViewManager.STATE_READY)
+    }
+
+    private fun scheduleHoldTimers() {
+        cancelHoldTimers()
+        uiHandler.postDelayed(holdWarningRunnable, HOLD_WARNING_MS)
+        uiHandler.postDelayed(holdAutoStopRunnable, HOLD_AUTO_STOP_MS)
+    }
+
+    private fun cancelHoldTimers() {
+        uiHandler.removeCallbacks(holdWarningRunnable)
+        uiHandler.removeCallbacks(holdAutoStopRunnable)
+    }
+
+    private fun startProcessing() {
+        if (micProcessing) return
+        micProcessing = true
+        viewManager.stateLD.postValue(ViewManager.STATE_PROCESSING)
+    }
+
+    private fun finishProcessing() {
+        micPressed = false
+        cancelHoldTimers()
+        if (!micProcessing) return
+        micProcessing = false
+        if (prefs.logicKeepScreenAwake.get() == KeepScreenAwakeMode.WHEN_LISTENING) {
+            setKeepScreenOn(false)
+        }
+        viewManager.stateLD.postValue(ViewManager.STATE_READY)
+    }
+
+    private fun mergeDeferredResults(finalText: String?): String {
+        val parts = deferredResults.toMutableList()
+        deferredResults.clear()
+        val tail = finalText?.trim().orEmpty()
+        if (tail.isNotEmpty() && (parts.isEmpty() || parts.last() != tail)) parts.add(tail)
+        if (parts.isEmpty()) return ""
+        return if (modelManager.currentRecognizerSourceAddSpaces) {
+            parts.joinToString(" ").trim()
+        } else {
+            parts.joinToString("").trim()
+        }
     }
 
     companion object {
+        private const val HOLD_WARNING_MS = 27_000L
+        private const val HOLD_AUTO_STOP_MS = 30_000L
         private val editorActions = intArrayOf(
             EditorInfo.IME_ACTION_UNSPECIFIED,
             EditorInfo.IME_ACTION_NONE,

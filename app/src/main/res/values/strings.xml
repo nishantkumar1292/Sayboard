@@ -8,6 +8,10 @@
     <string name="mic_info_error">Error</string>
     <string name="mic_info_preparing">Preparing the recognizer</string>
     <string name="mic_info_ready">Ready</string>
+    <string name="mic_info_hold_to_talk">Hold to talk</string>
+    <string name="mic_info_release_to_send">Release to send</string>
+    <string name="mic_info_release_soon">Release soon (max 30s)</string>
+    <string name="mic_info_processing">Processing...</string>
     <string name="mic_info_error_failed">Failed to initialize recognizer %s</string>
     <string name="mic_info_recording">Say something</string>
 
@@ -50,7 +54,7 @@
 
     <string name="switch_keyboard">Switch Keyboard</string>
     <string name="open_ime_switcher">Open IME Switcher</string>
-    <string name="open_ime_note">Note: you can open the IME switcher when the keyboard is open by long pressing the Mic button.</string>
+    <string name="open_ime_note">Note: use your system keyboard switch button to change keyboards.</string>
     <string name="show_libraries">Show Used Libraries</string>
 
     <string name="title_activity_settings" translatable="false">SettingsActivity</string>

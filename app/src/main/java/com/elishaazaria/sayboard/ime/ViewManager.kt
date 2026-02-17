@@ -46,7 +46,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.darkColors
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowRightAlt
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.KeyboardReturn
@@ -98,7 +97,6 @@ import com.elishaazaria.sayboard.theme.DarkSurfaceVariant
 import com.elishaazaria.sayboard.theme.ErrorRed
 import com.elishaazaria.sayboard.theme.ListeningBlue
 import com.elishaazaria.sayboard.theme.Shapes
-import com.elishaazaria.sayboard.ui.utils.MyIconButton
 import com.elishaazaria.sayboard.ui.utils.MyTextButton
 import com.elishaazaria.sayboard.utils.AudioDevices
 import com.elishaazaria.sayboard.utils.describe
@@ -144,13 +142,17 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
             val primary = MaterialTheme.colors.primary
             val bg = MaterialTheme.colors.background
             val onBg = MaterialTheme.colors.onBackground
-            val surface = MaterialTheme.colors.surface
             val isDark = isSystemInDarkTheme()
+            val controlsEnabled =
+                stateS.value != STATE_LISTENING &&
+                        stateS.value != STATE_PROCESSING &&
+                        stateS.value != STATE_LIMIT_WARNING
 
             // Animated accent color based on state
             val stateColor by animateColorAsState(
                 targetValue = when (stateS.value) {
                     STATE_LISTENING -> ListeningBlue
+                    STATE_LIMIT_WARNING -> ErrorRed
                     STATE_ERROR -> ErrorRed
                     else -> primary
                 },
@@ -190,7 +192,10 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 for (key in topKeys) {
-                                    MyTextButton(onClick = { listener?.buttonClicked(key.text) }) {
+                                    MyTextButton(
+                                        onClick = { listener?.buttonClicked(key.text) },
+                                        enabled = controlsEnabled
+                                    ) {
                                         Text(
                                             text = key.label,
                                             color = onBg.copy(alpha = 0.8f),
@@ -201,8 +206,9 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                             }
                             Box(
                                 modifier = Modifier
-                                    .pointerInput(Unit) {
+                                    .pointerInput(controlsEnabled) {
                                         detectTapGestures(onPress = {
+                                            if (!controlsEnabled) return@detectTapGestures
                                             var down = true;
                                             coroutineScope {
                                                 val repeatJob = launch {
@@ -220,18 +226,20 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                                 }
                                             }
                                         }, onTap = {
-                                            listener?.backspaceClicked()
+                                            if (controlsEnabled) {
+                                                listener?.backspaceClicked()
+                                            }
                                         })
                                     }
-                                    .pointerInput(Unit) {
+                                    .pointerInput(controlsEnabled) {
                                         detectHorizontalDragGestures(onDragStart = {
-                                            listener?.backspaceTouchStart(it)
+                                            if (controlsEnabled) listener?.backspaceTouchStart(it)
                                         }, onDragCancel = {
-                                            listener?.backspaceTouchEnd()
+                                            if (controlsEnabled) listener?.backspaceTouchEnd()
                                         }, onDragEnd = {
-                                            listener?.backspaceTouchEnd()
+                                            if (controlsEnabled) listener?.backspaceTouchEnd()
                                         }, onHorizontalDrag = { change, amount ->
-                                            listener?.backspaceTouched(change, amount)
+                                            if (controlsEnabled) listener?.backspaceTouched(change, amount)
                                         })
                                     }
                                     .minimumInteractiveComponentSize()
@@ -243,7 +251,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                     Icon(
                                         imageVector = Icons.Default.Backspace,
                                         contentDescription = null,
-                                        tint = onBg.copy(alpha = 0.7f)
+                                        tint = onBg.copy(alpha = if (controlsEnabled) 0.7f else 0.35f)
                                     )
                                 }
                             }
@@ -257,7 +265,10 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 for (key in leftKeys) {
-                                    MyTextButton(onClick = { listener?.buttonClicked(key.text) }) {
+                                    MyTextButton(
+                                        onClick = { listener?.buttonClicked(key.text) },
+                                        enabled = controlsEnabled
+                                    ) {
                                         Text(
                                             text = key.label,
                                             color = onBg.copy(alpha = 0.8f),
@@ -295,9 +306,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                     1f
                                 }
 
-                                MyIconButton(
-                                    onClick = { listener?.micClick() },
-                                    onLongClick = { listener?.micLongClick() },
+                                Box(
                                     modifier = Modifier
                                         .size(micButtonSize)
                                         .scale(pulseScale)
@@ -311,12 +320,27 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                             color = stateColor.copy(alpha = 0.5f),
                                             shape = CircleShape
                                         )
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    listener?.micPressStart()
+                                                    try {
+                                                        tryAwaitRelease()
+                                                    } finally {
+                                                        listener?.micPressEnd()
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        .minimumInteractiveComponentSize(),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = when (stateS.value) {
                                             STATE_INITIAL, STATE_LOADING -> Icons.Default.SettingsVoice
                                             STATE_READY, STATE_PAUSED -> Icons.Default.MicNone
-                                            STATE_LISTENING -> Icons.Default.Mic
+                                            STATE_LISTENING, STATE_LIMIT_WARNING -> Icons.Default.Mic
+                                            STATE_PROCESSING -> Icons.Default.SettingsVoice
                                             else -> Icons.Default.MicOff
                                         },
                                         contentDescription = null,
@@ -330,8 +354,10 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 // Status text
                                 val statusText = when (stateS.value) {
                                     STATE_INITIAL, STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
-                                    STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_ready)
-                                    STATE_LISTENING -> stringResource(id = R.string.mic_info_recording)
+                                    STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_hold_to_talk)
+                                    STATE_LISTENING -> stringResource(id = R.string.mic_info_release_to_send)
+                                    STATE_LIMIT_WARNING -> stringResource(id = R.string.mic_info_release_soon)
+                                    STATE_PROCESSING -> stringResource(id = R.string.mic_info_processing)
                                     else -> stringResource(id = errorMessageS.value)
                                 }
                                 val isError = stateS.value == STATE_ERROR
@@ -358,7 +384,10 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 for (key in rightKeys) {
-                                    MyTextButton(onClick = { listener?.buttonClicked(key.text) }) {
+                                    MyTextButton(
+                                        onClick = { listener?.buttonClicked(key.text) },
+                                        enabled = controlsEnabled
+                                    ) {
                                         Text(
                                             text = key.label,
                                             color = onBg.copy(alpha = 0.8f),
@@ -379,6 +408,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                             // Settings
                             IconButton(
                                 onClick = { listener?.settingsClicked() },
+                                enabled = controlsEnabled,
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
@@ -399,7 +429,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                         if (isDark) DarkSurfaceVariant
                                         else Color(0xFFE0E0E0)
                                     )
-                                    .clickable { listener?.modelClicked() }
+                                    .clickable(enabled = controlsEnabled) { listener?.modelClicked() }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Row(
@@ -428,6 +458,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                     devices = AudioDevices.validAudioDevices(ime)
                                     showDevicesPopup = true
                                 },
+                                enabled = controlsEnabled,
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
@@ -442,6 +473,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                             // Enter/Return
                             IconButton(
                                 onClick = { listener?.returnClicked() },
+                                enabled = controlsEnabled,
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 val enterAction by enterActionLD.observeAsState()
@@ -547,8 +579,8 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
     }
 
     interface Listener {
-        fun micClick()
-        fun micLongClick(): Boolean
+        fun micPressStart()
+        fun micPressEnd()
         fun backClicked()
         fun backspaceClicked()
         fun backspaceTouchStart(offset: Offset)
@@ -568,6 +600,8 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
         const val STATE_LISTENING = 3
         const val STATE_PAUSED = 4
         const val STATE_ERROR = 5
+        const val STATE_PROCESSING = 6
+        const val STATE_LIMIT_WARNING = 7
     }
 }
 
