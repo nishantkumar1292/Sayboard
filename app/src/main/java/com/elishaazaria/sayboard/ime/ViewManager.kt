@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowColumn
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,6 +82,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -186,42 +186,77 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                     tint = onBg.copy(alpha = 0.7f)
                                 )
                             }
-                            val topKeys by prefs.keyboardKeysTop.observeAsState()
-                            FlowRow(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.Center
+                            // Model chip (moved to top row)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 4.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(
+                                        if (isDark) DarkSurfaceVariant
+                                        else Color(0xFFE0E0E0)
+                                    )
+                                    .clickable(enabled = controlsEnabled) { listener?.modelClicked() }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                for (key in topKeys) {
-                                    MyTextButton(
-                                        onClick = { listener?.buttonClicked(key.text) },
-                                        enabled = controlsEnabled
-                                    ) {
-                                        Text(
-                                            text = key.label,
-                                            color = onBg.copy(alpha = 0.8f),
-                                            fontSize = 14.sp
-                                        )
-                                    }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Language,
+                                        contentDescription = null,
+                                        tint = primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = recognizerNameS.value,
+                                        fontSize = 12.sp,
+                                        color = onBg.copy(alpha = 0.8f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
+                            }
+                            // Audio device
+                            IconButton(
+                                onClick = {
+                                    devices = AudioDevices.validAudioDevices(ime)
+                                    showDevicesPopup = true
+                                },
+                                enabled = controlsEnabled,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = recordDeviceS?.toIcon()
+                                        ?: Icons.Default.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = onBg.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                             Box(
                                 modifier = Modifier
                                     .pointerInput(controlsEnabled) {
                                         detectTapGestures(onPress = {
                                             if (!controlsEnabled) return@detectTapGestures
-                                            var down = true;
+                                            var down = true
                                             coroutineScope {
                                                 val repeatJob = launch {
                                                     delay(Constants.BackspaceRepeatStartDelay)
+                                                    var repeatDelay = Constants.BackspaceRepeatDelay
                                                     while (down) {
                                                         listener?.backspaceClicked()
-                                                        delay(Constants.BackspaceRepeatDelay)
+                                                        delay(repeatDelay)
+                                                        // Accelerate: reduce delay down to minimum 20ms
+                                                        repeatDelay = (repeatDelay * 85 / 100).coerceAtLeast(20)
                                                     }
                                                 }
                                                 launch {
-                                                    val released = tryAwaitRelease();
-                                                    down = false;
-                                                    Log.d("ViewManager", "$released")
+                                                    tryAwaitRelease()
+                                                    down = false
                                                     repeatJob.cancel()
                                                 }
                                             }
@@ -337,8 +372,8 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 ) {
                                     Icon(
                                         imageVector = when (stateS.value) {
-                                            STATE_INITIAL, STATE_LOADING -> Icons.Default.SettingsVoice
-                                            STATE_READY, STATE_PAUSED -> Icons.Default.MicNone
+                                            STATE_LOADING -> Icons.Default.SettingsVoice
+                                            STATE_INITIAL, STATE_READY, STATE_PAUSED -> Icons.Default.MicNone
                                             STATE_LISTENING, STATE_LIMIT_WARNING -> Icons.Default.Mic
                                             STATE_PROCESSING -> Icons.Default.SettingsVoice
                                             else -> Icons.Default.MicOff
@@ -353,8 +388,8 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
 
                                 // Status text
                                 val statusText = when (stateS.value) {
-                                    STATE_INITIAL, STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
-                                    STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_hold_to_talk)
+                                    STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
+                                    STATE_INITIAL, STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_hold_to_talk)
                                     STATE_LISTENING -> stringResource(id = R.string.mic_info_release_to_send)
                                     STATE_LIMIT_WARNING -> stringResource(id = R.string.mic_info_release_soon)
                                     STATE_PROCESSING -> stringResource(id = R.string.mic_info_processing)
@@ -419,55 +454,56 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 )
                             }
 
-                            // Model chip
-                            Box(
+                            // Spacebar
+                            Card(
+                                shape = RoundedCornerShape(8.dp),
+                                backgroundColor = if (isDark) Color(0xFF2A3A5C) else Color(0xFFD8D8D8),
+                                elevation = 3.dp,
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(40.dp)
                                     .padding(horizontal = 4.dp)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(
-                                        if (isDark) DarkSurfaceVariant
-                                        else Color(0xFFE0E0E0)
-                                    )
-                                    .clickable(enabled = controlsEnabled) { listener?.modelClicked() }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .pointerInput(controlsEnabled) {
+                                        detectTapGestures(onPress = {
+                                            if (!controlsEnabled) return@detectTapGestures
+                                            var down = true
+                                            coroutineScope {
+                                                val repeatJob = launch {
+                                                    delay(Constants.BackspaceRepeatStartDelay)
+                                                    while (down) {
+                                                        listener?.buttonClicked(" ")
+                                                        delay(Constants.BackspaceRepeatDelay)
+                                                    }
+                                                }
+                                                launch {
+                                                    tryAwaitRelease()
+                                                    down = false
+                                                    repeatJob.cancel()
+                                                }
+                                            }
+                                        }, onTap = {
+                                            if (controlsEnabled) {
+                                                listener?.buttonClicked(" ")
+                                            }
+                                        })
+                                    }
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 4.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Language,
-                                        contentDescription = null,
-                                        tint = primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = recognizerNameS.value,
-                                        fontSize = 12.sp,
-                                        color = onBg.copy(alpha = 0.8f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        text = "space",
+                                        fontSize = 15.sp,
+                                        color = onBg.copy(alpha = 0.7f),
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 1.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
-                            }
-
-                            // Audio device
-                            IconButton(
-                                onClick = {
-                                    devices = AudioDevices.validAudioDevices(ime)
-                                    showDevicesPopup = true
-                                },
-                                enabled = controlsEnabled,
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = recordDeviceS?.toIcon()
-                                        ?: Icons.Default.PhoneAndroid,
-                                    contentDescription = null,
-                                    tint = onBg.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(20.dp)
-                                )
                             }
 
                             // Enter/Return
