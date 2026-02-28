@@ -2,6 +2,8 @@
 <resources>
 
     <string name="app_name" translatable="false">SpeakKeys</string>
+    <!-- Replace with your own Web Client ID from Firebase Console → Authentication → Google -->
+    <string name="default_web_client_id" translatable="false">669141656625-eh9cbtv0tmjmuhvdv49buf8auggpvjrt.apps.googleusercontent.com</string>
 
     <!--  Mic  -->
 
@@ -142,4 +144,29 @@
 
     <string name="button_save">Save</string>
     <string name="button_clear">Clear</string>
+
+    <!--  Account / Subscription  -->
+    <string name="title_account">Account</string>
+    <string name="account_sign_in_title">Sign in to get started</string>
+    <string name="account_sign_in_description">Sign in with Google to get a 7-day free trial of cloud speech recognition, no API keys required.</string>
+    <string name="account_sign_in_google">Sign in with Google</string>
+    <string name="account_user">User</string>
+    <string name="account_sign_out">Sign Out</string>
+    <string name="account_subscription_header">Subscription</string>
+    <string name="account_subscription_active">Active subscription</string>
+    <string name="account_trial_remaining">Trial: %d days remaining</string>
+    <string name="account_trial_pending">7-day free trial ready</string>
+    <string name="account_trial_pending_description">Your trial starts the first time you use cloud speech recognition.</string>
+    <string name="account_trial_encouragement">Enjoy unlimited cloud speech recognition during your trial!</string>
+    <string name="account_trial_expired">Free trial ended</string>
+    <string name="account_subscribe_prompt">Subscribe to continue using cloud speech recognition without your own API keys.</string>
+    <string name="account_subscribe_button">Subscribe</string>
+    <string name="account_credits_header">Credits</string>
+    <string name="account_credits_remaining">%d credits remaining</string>
+    <string name="account_developer_hint">Developer? Go to the API tab to use your own API keys instead.</string>
+    <string name="error_proxy_auth">Authentication failed. Please sign in again.</string>
+
+    <!--  Onboarding sign-in prompt  -->
+    <string name="onboarding_sign_in_prompt">Sign in to get started with a 7-day free trial</string>
+    <string name="onboarding_skip_sign_in">Skip — I\'ll use my own API keys</string>
 </resources>

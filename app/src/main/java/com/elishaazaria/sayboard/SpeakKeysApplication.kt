@@ -2,6 +2,7 @@ package com.elishaazaria.sayboard
 
 import android.app.Application
 import com.elishaazaria.sayboard.AppCtx.setAppCtx
+import com.google.firebase.FirebaseApp
 import dev.patrickgold.jetpref.datastore.JetPref
 
 class SpeakKeysApplication : Application() {
@@ -20,5 +21,9 @@ class SpeakKeysApplication : Application() {
         prefs.initializeBlocking(this)
 
         setAppCtx(this)
+
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
+        // Note: RevenueCat is initialized after sign-in (needs Firebase uid)
     }
 }

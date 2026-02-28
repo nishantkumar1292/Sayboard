@@ -8,6 +8,7 @@ import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 class Providers(context: Context) {
     private val whisperCloudProvider: WhisperCloudProvider
     private val sarvamCloudProvider: SarvamCloudProvider
+    private val proxiedCloudProvider: ProxiedCloudProvider
     private val providers: List<RecognizerSourceProvider>
 
     init {
@@ -16,6 +17,8 @@ class Providers(context: Context) {
         providersM.add(sarvamCloudProvider)
         whisperCloudProvider = WhisperCloudProvider(context)
         providersM.add(whisperCloudProvider)
+        proxiedCloudProvider = ProxiedCloudProvider(context)
+        providersM.add(proxiedCloudProvider)
         providers = providersM
     }
 
@@ -23,6 +26,8 @@ class Providers(context: Context) {
         return when (localModel.type) {
             ModelType.WhisperCloud -> whisperCloudProvider.recognizerSourceForModel(localModel)
             ModelType.SarvamCloud -> sarvamCloudProvider.recognizerSourceForModel(localModel)
+            ModelType.ProxiedWhisperCloud,
+            ModelType.ProxiedSarvamCloud -> proxiedCloudProvider.recognizerSourceForModel(localModel)
         }
     }
 

@@ -8,3 +8,10 @@
     public static int v(...);
     public static int d(...);
 }
+
+# Firebase Auth
+-keepattributes Signature
+-keepattributes *Annotation*
+
+# RevenueCat
+-keep class com.revenuecat.purchases.** { *; }

@@ -5,5 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class ModelType {
     WhisperCloud,
-    SarvamCloud
+    SarvamCloud,
+    ProxiedWhisperCloud,
+    ProxiedSarvamCloud
 }

@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization'
     id 'com.mikepenz.aboutlibraries.plugin'
     id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.google.gms.google-services'
 }
 
 def isBundleBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
@@ -112,4 +113,14 @@ dependencies {
     implementation 'androidx.compose.runtime:runtime-livedata'
 
     implementation "com.mikepenz:aboutlibraries-compose:11.1.4"
+
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:34.9.0')
+    implementation 'com.google.firebase:firebase-auth'
+
+    // Google Sign-In
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+
+    // RevenueCat (subscriptions)
+    implementation 'com.revenuecat.purchases:purchases:8.12.1'
 }

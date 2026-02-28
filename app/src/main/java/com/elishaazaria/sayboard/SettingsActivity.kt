@@ -3,6 +3,7 @@ package com.elishaazaria.sayboard
 import android.Manifest
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,12 +32,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.MutableLiveData
+import com.elishaazaria.sayboard.auth.AuthManager
+import com.elishaazaria.sayboard.auth.SubscriptionManager
 import com.elishaazaria.sayboard.theme.AppTheme
+import com.elishaazaria.sayboard.ui.AccountSettingsUi
 import com.elishaazaria.sayboard.ui.GrantPermissionUi
 import com.elishaazaria.sayboard.ui.KeyboardSettingsUi
 import com.elishaazaria.sayboard.ui.LogicSettingsUi
 import com.elishaazaria.sayboard.ui.ModelsSettingsUi
 import com.elishaazaria.sayboard.ui.ApiSettingsUi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
 
@@ -51,6 +59,13 @@ class SettingsActivity : ComponentActivity() {
 
         modelSettingsUi.onCreate()
 
+        // Refresh subscription status on launch
+        if (AuthManager.isSignedIn) {
+            CoroutineScope(Dispatchers.IO).launch {
+                SubscriptionManager.refreshStatus()
+            }
+        }
+
         setContent {
             AppTheme {
                 val micGrantedState = micGranted.observeAsState(true)
@@ -58,15 +73,45 @@ class SettingsActivity : ComponentActivity() {
                 if (micGrantedState.value && imeGrantedState.value) {
                     MainUi()
                 } else {
-                    GrantPermissionUi(mic = micGrantedState, ime = imeGrantedState, requestMic = {
-                        ActivityCompat.requestPermissions(
-                            this, arrayOf(
-                                Manifest.permission.RECORD_AUDIO
-                            ), PERMISSIONS_REQUEST_RECORD_AUDIO
-                        )
-                    }) {
-                        startActivity(Intent("android.settings.INPUT_METHOD_SETTINGS"))
-                    }
+                    GrantPermissionUi(
+                        mic = micGrantedState,
+                        ime = imeGrantedState,
+                        requestMic = {
+                            ActivityCompat.requestPermissions(
+                                this, arrayOf(
+                                    Manifest.permission.RECORD_AUDIO
+                                ), PERMISSIONS_REQUEST_RECORD_AUDIO
+                            )
+                        },
+                        requestIme = {
+                            startActivity(Intent("android.settings.INPUT_METHOD_SETTINGS"))
+                        },
+                        onSignIn = {
+                            @Suppress("deprecation")
+                            startActivityForResult(
+                                AuthManager.getSignInIntent(this),
+                                AuthManager.RC_SIGN_IN
+                            )
+                        },
+                        onSkipSignIn = {
+                            // Permissions are granted, skip sign-in and go to main UI
+                            checkPermissions()
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    @Suppress("deprecation")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == AuthManager.RC_SIGN_IN) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val success = AuthManager.handleSignInResult(data)
+                if (success) {
+                    Log.d("SettingsActivity", "Google Sign-In successful")
+                    SubscriptionManager.refreshStatus()
                 }
             }
         }
@@ -75,6 +120,7 @@ class SettingsActivity : ComponentActivity() {
     @Composable
     private fun MainUi() {
         val tabs = listOf<String>(
+            stringResource(id = R.string.title_account),
             stringResource(id = R.string.title_models),
             stringResource(id = R.string.title_keyboard),
             stringResource(id = R.string.title_logic),
@@ -93,21 +139,26 @@ class SettingsActivity : ComponentActivity() {
                         icon = {
                             when (index) {
                                 0 -> Icon(
-                                    imageVector = Icons.Default.Home,
+                                    imageVector = Icons.Default.Person,
                                     contentDescription = null
                                 )
 
                                 1 -> Icon(
-                                    imageVector = Icons.Default.Keyboard,
+                                    imageVector = Icons.Default.Home,
                                     contentDescription = null
                                 )
 
                                 2 -> Icon(
-                                    imageVector = Icons.Default.Settings,
+                                    imageVector = Icons.Default.Keyboard,
                                     contentDescription = null
                                 )
 
                                 3 -> Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = null
+                                )
+
+                                4 -> Icon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = null
                                 )
@@ -125,10 +176,20 @@ class SettingsActivity : ComponentActivity() {
                     .padding(10.dp)
             ) {
                 when (selectedIndex) {
-                    0 -> modelSettingsUi.Content()
-                    1 -> KeyboardSettingsUi()
-                    2 -> LogicSettingsUi(this@SettingsActivity)
-                    3 -> ApiSettingsUi()
+                    0 -> AccountSettingsUi(
+                        activity = this@SettingsActivity,
+                        onSignIn = {
+                            @Suppress("deprecation")
+                            startActivityForResult(
+                                AuthManager.getSignInIntent(this@SettingsActivity),
+                                AuthManager.RC_SIGN_IN
+                            )
+                        }
+                    )
+                    1 -> modelSettingsUi.Content()
+                    2 -> KeyboardSettingsUi()
+                    3 -> LogicSettingsUi(this@SettingsActivity)
+                    4 -> ApiSettingsUi()
                 }
             }
         }

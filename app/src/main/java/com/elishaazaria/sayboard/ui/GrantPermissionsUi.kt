@@ -4,12 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
@@ -20,13 +24,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elishaazaria.sayboard.R
+import com.elishaazaria.sayboard.auth.AuthManager
 
 @Composable
 public fun GrantPermissionUi(
     mic: State<Boolean>,
     ime: State<Boolean>,
     requestMic: () -> Unit,
-    requestIme: () -> Unit
+    requestIme: () -> Unit,
+    onSignIn: (() -> Unit)? = null,
+    onSkipSignIn: (() -> Unit)? = null
 ) {
     val brandBlue = Color(0xFF1F5DD7)
     val brandBlueLight = Color(0xFFE7F0FF)
@@ -97,6 +104,35 @@ public fun GrantPermissionUi(
                     Text(text = stringResource(id = R.string.keyboard_enabled))
                 } else {
                     Text(text = stringResource(id = R.string.keyboard_not_enabled))
+                }
+            }
+
+            // Show sign-in prompt after permissions are granted
+            if (mic.value && ime.value && !AuthManager.isSignedIn && onSignIn != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(id = R.string.onboarding_sign_in_prompt),
+                    textAlign = TextAlign.Center,
+                    color = brandBlue,
+                    style = MaterialTheme.typography.subtitle1
+                )
+                Button(
+                    onClick = onSignIn,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = brandBlue,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(text = stringResource(id = R.string.account_sign_in_google))
+                }
+                if (onSkipSignIn != null) {
+                    TextButton(onClick = onSkipSignIn) {
+                        Text(
+                            text = stringResource(id = R.string.onboarding_skip_sign_in),
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
         }

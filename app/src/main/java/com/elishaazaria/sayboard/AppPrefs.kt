@@ -160,4 +160,20 @@ class AppPrefs : PreferenceModel("example-app-preferences") {
         key = "s_sarvam_language",
         default = "unknown"
     )
+
+    // Cached subscription state (updated from backend on launch)
+    val cachedSubscriptionStatus = string(
+        key = "s_cached_sub_status",
+        default = "none"
+    )
+
+    val cachedTrialExpiresAt = long(
+        key = "l_cached_trial_expires",
+        default = 0L
+    )
+
+    val cachedCredits = int(
+        key = "i_cached_credits",
+        default = 0
+    )
 }

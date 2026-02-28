@@ -37,5 +37,8 @@ google-services.json
 *.lst
 /app/release/
 
+# Firebase project config (contains project ID)
+.firebaserc
+
 # todo
 TODO.md
