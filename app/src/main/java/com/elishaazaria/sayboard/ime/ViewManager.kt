@@ -16,6 +16,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +51,7 @@ import androidx.compose.material.icons.filled.ArrowRightAlt
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicNone
 import androidx.compose.material.icons.filled.MicOff
@@ -116,6 +119,7 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
     val recognizerNameLD = MutableLiveData("")
     val enterActionLD = MutableLiveData(EditorInfo.IME_ACTION_UNSPECIFIED)
 
+    val keyboardModeLD = MutableLiveData(KeyboardMode.VOICE)
     val recordDevice: MutableLiveData<AudioDeviceInfo?> = MutableLiveData()
 
     private var devices: List<AudioDeviceInfo> = listOf()
@@ -124,12 +128,13 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
     }
 
-    @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
     @Composable
     override fun Content() {
         val stateS = stateLD.observeAsState()
         val errorMessageS = errorMessageLD.observeAsState(R.string.mic_info_error)
         val recognizerNameS = recognizerNameLD.observeAsState(initial = "")
+        val keyboardMode by keyboardModeLD.observeAsState(KeyboardMode.VOICE)
         val height =
             (LocalConfiguration.current.screenHeightDp * when (LocalConfiguration.current.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE -> prefs.keyboardHeightLandscape.get()
@@ -179,9 +184,19 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                                 .fillMaxWidth()
                                 .padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
-                            IconButton(onClick = { listener?.backClicked() }) {
+                            // Mode toggle (tap) / Settings (long-press)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .combinedClickable(
+                                        onClick = { listener?.toggleKeyboardMode() },
+                                        onLongClick = { listener?.settingsClicked() }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.KeyboardHide,
+                                    imageVector = if (keyboardMode == KeyboardMode.VOICE)
+                                        Icons.Default.Keyboard else Icons.Default.Mic,
                                     contentDescription = null,
                                     tint = onBg.copy(alpha = 0.7f)
                                 )
@@ -292,144 +307,157 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
                             }
                         }
 
-                        // ── Middle section: side keys + mic ──
-                        Row(modifier = Modifier.weight(1f)) {
-                            val leftKeys by prefs.keyboardKeysLeft.observeAsState()
-                            FlowColumn(
-                                modifier = Modifier.padding(start = 4.dp),
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                for (key in leftKeys) {
-                                    MyTextButton(
-                                        onClick = { listener?.buttonClicked(key.text) },
-                                        enabled = controlsEnabled
+                        // ── Middle section: voice or typing ──
+                        when (keyboardMode) {
+                            KeyboardMode.VOICE -> {
+                                Row(modifier = Modifier.weight(1f)) {
+                                    val leftKeys by prefs.keyboardKeysLeft.observeAsState()
+                                    FlowColumn(
+                                        modifier = Modifier.padding(start = 4.dp),
+                                        verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text(
-                                            text = key.label,
-                                            color = onBg.copy(alpha = 0.8f),
-                                            fontSize = 14.sp
-                                        )
+                                        for (key in leftKeys) {
+                                            MyTextButton(
+                                                onClick = { listener?.buttonClicked(key.text) },
+                                                enabled = controlsEnabled
+                                            ) {
+                                                Text(
+                                                    text = key.label,
+                                                    color = onBg.copy(alpha = 0.8f),
+                                                    fontSize = 14.sp
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-                            }
 
-                            // Center: mic button + status
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                // Mic button with circular background
-                                val micButtonSize = 80.dp
+                                    // Center: mic button + status
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxSize(),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        // Mic button with circular background
+                                        val micButtonSize = 80.dp
 
-                                // Pulse animation for listening state
-                                val pulseScale = if (stateS.value == STATE_LISTENING) {
-                                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                                    val scale by infiniteTransition.animateFloat(
-                                        initialValue = 1f,
-                                        targetValue = 1.08f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(800),
-                                            repeatMode = RepeatMode.Reverse
-                                        ),
-                                        label = "pulseScale"
-                                    )
-                                    scale
-                                } else {
-                                    1f
-                                }
+                                        // Pulse animation for listening state
+                                        val pulseScale = if (stateS.value == STATE_LISTENING) {
+                                            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                                            val scale by infiniteTransition.animateFloat(
+                                                initialValue = 1f,
+                                                targetValue = 1.08f,
+                                                animationSpec = infiniteRepeatable(
+                                                    animation = tween(800),
+                                                    repeatMode = RepeatMode.Reverse
+                                                ),
+                                                label = "pulseScale"
+                                            )
+                                            scale
+                                        } else {
+                                            1f
+                                        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(micButtonSize)
-                                        .scale(pulseScale)
-                                        .clip(CircleShape)
-                                        .background(
-                                            stateColor.copy(alpha = if (isDark) 0.15f else 0.1f),
-                                            CircleShape
-                                        )
-                                        .border(
-                                            width = 2.dp,
-                                            color = stateColor.copy(alpha = 0.5f),
-                                            shape = CircleShape
-                                        )
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onPress = {
-                                                    listener?.micPressStart()
-                                                    try {
-                                                        tryAwaitRelease()
-                                                    } finally {
-                                                        listener?.micPressEnd()
-                                                    }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(micButtonSize)
+                                                .scale(pulseScale)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    stateColor.copy(alpha = if (isDark) 0.15f else 0.1f),
+                                                    CircleShape
+                                                )
+                                                .border(
+                                                    width = 2.dp,
+                                                    color = stateColor.copy(alpha = 0.5f),
+                                                    shape = CircleShape
+                                                )
+                                                .pointerInput(Unit) {
+                                                    detectTapGestures(
+                                                        onPress = {
+                                                            listener?.micPressStart()
+                                                            try {
+                                                                tryAwaitRelease()
+                                                            } finally {
+                                                                listener?.micPressEnd()
+                                                            }
+                                                        }
+                                                    )
                                                 }
+                                                .minimumInteractiveComponentSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = when (stateS.value) {
+                                                    STATE_LOADING -> Icons.Default.SettingsVoice
+                                                    STATE_INITIAL, STATE_READY, STATE_PAUSED -> Icons.Default.MicNone
+                                                    STATE_LISTENING, STATE_LIMIT_WARNING -> Icons.Default.Mic
+                                                    STATE_PROCESSING -> Icons.Default.SettingsVoice
+                                                    else -> Icons.Default.MicOff
+                                                },
+                                                contentDescription = null,
+                                                tint = stateColor,
+                                                modifier = Modifier.size(36.dp)
                                             )
                                         }
-                                        .minimumInteractiveComponentSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = when (stateS.value) {
-                                            STATE_LOADING -> Icons.Default.SettingsVoice
-                                            STATE_INITIAL, STATE_READY, STATE_PAUSED -> Icons.Default.MicNone
-                                            STATE_LISTENING, STATE_LIMIT_WARNING -> Icons.Default.Mic
-                                            STATE_PROCESSING -> Icons.Default.SettingsVoice
-                                            else -> Icons.Default.MicOff
-                                        },
-                                        contentDescription = null,
-                                        tint = stateColor,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
 
-                                // Status text
-                                val statusText = when (stateS.value) {
-                                    STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
-                                    STATE_INITIAL, STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_hold_to_talk)
-                                    STATE_LISTENING -> stringResource(id = R.string.mic_info_release_to_send)
-                                    STATE_LIMIT_WARNING -> stringResource(id = R.string.mic_info_release_soon)
-                                    STATE_PROCESSING -> stringResource(id = R.string.mic_info_processing)
-                                    else -> stringResource(id = errorMessageS.value)
-                                }
-                                val isError = stateS.value == STATE_ERROR
-                                Text(
-                                    text = if (isError && errorMessageS.value == R.string.mic_error_no_recognizers) {
-                                        stringResource(id = R.string.mic_error_no_recognizers_tap_to_configure)
-                                    } else {
-                                        statusText
-                                    },
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = stateColor.copy(alpha = 0.9f),
-                                    modifier = if (isError) {
-                                        Modifier.clickable { listener?.settingsClicked() }
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                            }
-
-                            val rightKeys by prefs.keyboardKeysRight.observeAsState()
-                            FlowColumn(
-                                modifier = Modifier.padding(end = 4.dp),
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                for (key in rightKeys) {
-                                    MyTextButton(
-                                        onClick = { listener?.buttonClicked(key.text) },
-                                        enabled = controlsEnabled
-                                    ) {
+                                        // Status text
+                                        val statusText = when (stateS.value) {
+                                            STATE_LOADING -> stringResource(id = R.string.mic_info_preparing)
+                                            STATE_INITIAL, STATE_READY, STATE_PAUSED -> stringResource(id = R.string.mic_info_hold_to_talk)
+                                            STATE_LISTENING -> stringResource(id = R.string.mic_info_release_to_send)
+                                            STATE_LIMIT_WARNING -> stringResource(id = R.string.mic_info_release_soon)
+                                            STATE_PROCESSING -> stringResource(id = R.string.mic_info_processing)
+                                            else -> stringResource(id = errorMessageS.value)
+                                        }
+                                        val isError = stateS.value == STATE_ERROR
                                         Text(
-                                            text = key.label,
-                                            color = onBg.copy(alpha = 0.8f),
-                                            fontSize = 14.sp
+                                            text = if (isError && errorMessageS.value == R.string.mic_error_no_recognizers) {
+                                                stringResource(id = R.string.mic_error_no_recognizers_tap_to_configure)
+                                            } else {
+                                                statusText
+                                            },
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = stateColor.copy(alpha = 0.9f),
+                                            modifier = if (isError) {
+                                                Modifier.clickable { listener?.settingsClicked() }
+                                            } else {
+                                                Modifier
+                                            }
                                         )
                                     }
+
+                                    val rightKeys by prefs.keyboardKeysRight.observeAsState()
+                                    FlowColumn(
+                                        modifier = Modifier.padding(end = 4.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        for (key in rightKeys) {
+                                            MyTextButton(
+                                                onClick = { listener?.buttonClicked(key.text) },
+                                                enabled = controlsEnabled
+                                            ) {
+                                                Text(
+                                                    text = key.label,
+                                                    color = onBg.copy(alpha = 0.8f),
+                                                    fontSize = 14.sp
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
+                            }
+                            KeyboardMode.TYPING -> {
+                                QwertyLayout(
+                                    onKeyPress = { text -> listener?.buttonClicked(text) },
+                                    onBackspace = { listener?.backspaceClicked() },
+                                    onCursorLeft = { listener?.cursorLeftClicked() },
+                                    onCursorRight = { listener?.cursorRightClicked() },
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
 
@@ -614,6 +642,8 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
         this.listener = listener
     }
 
+    enum class KeyboardMode { VOICE, TYPING }
+
     interface Listener {
         fun micPressStart()
         fun micPressEnd()
@@ -627,6 +657,9 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime),
         fun settingsClicked()
         fun buttonClicked(text: String)
         fun deviceChanged(device: AudioDeviceInfo)
+        fun toggleKeyboardMode()
+        fun cursorLeftClicked()
+        fun cursorRightClicked()
     }
 
     companion object {

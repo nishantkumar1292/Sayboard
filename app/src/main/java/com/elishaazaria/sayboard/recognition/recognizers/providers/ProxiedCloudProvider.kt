@@ -3,7 +3,6 @@ package com.elishaazaria.sayboard.recognition.recognizers.providers
 import android.content.Context
 import android.util.Log
 import com.elishaazaria.sayboard.auth.AuthManager
-import com.elishaazaria.sayboard.auth.SubscriptionManager
 import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
@@ -19,10 +18,13 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
     }
 
     override fun getInstalledModels(): List<InstalledModelReference> {
-        // Only show proxied models if user is signed in and has access
-        if (!AuthManager.isSignedIn || !SubscriptionManager.hasAccess) {
+        // Only gate on sign-in status (local/reliable). Access is enforced server-side
+        // by the proxy backend, avoiding stale-cache lockout issues.
+        if (!AuthManager.isSignedIn) {
+            Log.d(TAG, "getInstalledModels: not signed in, skipping proxied models")
             return emptyList()
         }
+        Log.d(TAG, "getInstalledModels: signed in as ${AuthManager.currentUser?.email}, returning proxied models")
 
         return listOf(
             InstalledModelReference(

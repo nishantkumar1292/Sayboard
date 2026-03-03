@@ -279,6 +279,22 @@ class IME : InputMethodService(), ModelManager.Listener {
         override fun deviceChanged(device: AudioDeviceInfo) {
             modelManager.recordDevice = device
         }
+
+        override fun toggleKeyboardMode() {
+            val current = viewManager.keyboardModeLD.value ?: ViewManager.KeyboardMode.VOICE
+            viewManager.keyboardModeLD.postValue(
+                if (current == ViewManager.KeyboardMode.VOICE) ViewManager.KeyboardMode.TYPING
+                else ViewManager.KeyboardMode.VOICE
+            )
+        }
+
+        override fun cursorLeftClicked() {
+            actionManager.moveCursorLeft()
+        }
+
+        override fun cursorRightClicked() {
+            actionManager.moveCursorRight()
+        }
     }
 
     /**

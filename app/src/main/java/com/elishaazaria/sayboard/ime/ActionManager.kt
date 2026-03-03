@@ -83,6 +83,20 @@ class ActionManager(private val ime: IME, private val viewManager: ViewManager) 
         }
     }
 
+    fun moveCursorLeft() {
+        val ic = ime.currentInputConnection ?: return
+        val newPos = (selectionStart - 1).coerceAtLeast(0)
+        ic.setSelection(newPos, newPos)
+    }
+
+    fun moveCursorRight() {
+        val ic = ime.currentInputConnection ?: return
+        val et = ic.getExtractedText(ExtractedTextRequest(), 0)
+        val maxPos = et?.text?.length ?: selectionEnd
+        val newPos = (selectionEnd + 1).coerceAtMost(maxPos)
+        ic.setSelection(newPos, newPos)
+    }
+
     fun switchToLastIme(showError: Boolean) {
         if (prefs.logicReturnToDefaultIME.get() && prefs.logicDefaultIME.get().isNotBlank()) {
             ime.switchInputMethod(prefs.logicDefaultIME.get())

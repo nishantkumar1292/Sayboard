@@ -36,15 +36,21 @@ object AuthManager {
 
     /**
      * Get a fresh Firebase ID token for authenticating with our proxy.
-     * Firebase SDK handles caching and auto-refresh.
+     * Tries cached token first, then force-refreshes on failure (e.g. after
+     * overnight idle when the cached token has expired and auto-refresh fails).
      */
     suspend fun getIdToken(): String? {
+        val user = currentUser ?: return null
         return try {
-            val result = currentUser?.getIdToken(false)?.await()
-            result?.token
+            user.getIdToken(false).await().token
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get ID token", e)
-            null
+            Log.w(TAG, "Cached token fetch failed, force-refreshing", e)
+            try {
+                user.getIdToken(true).await().token
+            } catch (e2: Exception) {
+                Log.e(TAG, "Force-refresh also failed", e2)
+                null
+            }
         }
     }
 
