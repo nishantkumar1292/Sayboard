@@ -1,7 +1,6 @@
 package com.elishaazaria.sayboard.recognition.recognizers.sources
 
 import android.util.Log
-import com.elishaazaria.sayboard.auth.SubscriptionManager
 import com.elishaazaria.sayboard.recognition.recognizers.Recognizer
 import com.elishaazaria.sayboard.utils.DevanagariTransliterator
 import okhttp3.MediaType.Companion.toMediaType
@@ -27,6 +26,7 @@ class ProxiedCloudRecognizer(
 
     companion object {
         private const val TAG = "ProxiedCloudRecognizer"
+        const val PROXY_BASE_URL = "https://asia-south1-speakkeys.cloudfunctions.net"
     }
 
     override val sampleRate: Float = 16000f
@@ -37,8 +37,6 @@ class ProxiedCloudRecognizer(
     private var bufferPosition = 0
 
     private var lastResult = ""
-    var trialExpired = false
-        private set
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -99,7 +97,7 @@ class ProxiedCloudRecognizer(
             }
 
             val request = Request.Builder()
-                .url("${SubscriptionManager.PROXY_BASE_URL}/transcribe")
+                .url("${PROXY_BASE_URL}/transcribe")
                 .addHeader("Authorization", "Bearer $firebaseIdToken")
                 .post(bodyBuilder.build())
                 .build()
@@ -125,8 +123,7 @@ class ProxiedCloudRecognizer(
                     }
                 }
                 response.code == 402 -> {
-                    Log.w(TAG, "Access denied: trial expired or no subscription")
-                    trialExpired = true
+                    Log.w(TAG, "Access denied: ${response.code}")
                 }
                 else -> {
                     Log.e(TAG, "Proxy error: ${response.code}")

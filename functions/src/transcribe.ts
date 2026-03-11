@@ -74,23 +74,14 @@ interface UserDoc {
   revenuecatAppUserId?: string;
 }
 
-// In-memory cache to avoid a Firestore round-trip on every request.
-// Keyed by uid. Entries expire after 5 minutes.
-const accessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
 async function checkAccess(uid: string): Promise<{ allowed: boolean; reason?: string }> {
-  const cached = accessCache.get(uid);
-  if (cached && Date.now() < cached.expiresAt) {
-    return { allowed: cached.allowed };
-  }
-
+  // All signed-in users have free access for now
   const db = admin.firestore();
   const userRef = db.collection("users").doc(uid);
   const userDoc = await userRef.get();
 
   if (!userDoc.exists) {
-    // First request — create user with trial
+    // First request — create user record
     const now = admin.firestore.Timestamp.now();
     const newUser: UserDoc = {
       createdAt: now,
@@ -99,57 +90,14 @@ async function checkAccess(uid: string): Promise<{ allowed: boolean; reason?: st
       credits: 0,
     };
     await userRef.set(newUser);
-    accessCache.set(uid, { allowed: true, expiresAt: Date.now() + CACHE_TTL_MS });
-    return { allowed: true };
   }
 
-  const data = userDoc.data() as UserDoc;
-
-  let allowed = false;
-  let reason: string | undefined;
-
-  if (data.subscriptionStatus === "active") {
-    allowed = true;
-  } else if (data.credits > 0) {
-    allowed = true;
-  } else {
-    const trialStart = data.trialStartedAt.toDate();
-    const trialEnd = new Date(trialStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-    if (new Date() < trialEnd) {
-      allowed = true;
-    } else {
-      reason = "trial_expired";
-    }
-  }
-
-  // Cache for 5 min (shorter for denied so trial expiry is noticed quickly)
-  accessCache.set(uid, {
-    allowed,
-    expiresAt: Date.now() + (allowed ? CACHE_TTL_MS : 60_000),
-  });
-
-  return { allowed, reason };
+  return { allowed: true };
 }
 
-async function deductCredit(uid: string): Promise<void> {
-  const db = admin.firestore();
-  const userRef = db.collection("users").doc(uid);
-  const userDoc = await userRef.get();
-  const data = userDoc.data() as UserDoc;
-
-  // Only deduct credits if not on active subscription and not in trial
-  if (data.subscriptionStatus === "active") return;
-
-  const trialStart = data.trialStartedAt.toDate();
-  const trialEnd = new Date(trialStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-  if (new Date() < trialEnd) return;
-
-  // Deduct 1 credit per transcription
-  if (data.credits > 0) {
-    await userRef.update({
-      credits: admin.firestore.FieldValue.increment(-1),
-    });
-  }
+// No-op: all users have free access for now
+async function deductCredit(_uid: string): Promise<void> {
+  return;
 }
 
 async function forwardToWhisper(

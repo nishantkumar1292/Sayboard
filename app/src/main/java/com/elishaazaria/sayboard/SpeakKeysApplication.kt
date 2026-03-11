@@ -24,6 +24,5 @@ class SpeakKeysApplication : Application() {
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
-        // Note: RevenueCat is initialized after sign-in (needs Firebase uid)
     }
 }

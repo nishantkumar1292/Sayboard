@@ -13,16 +13,18 @@ android {
     compileSdk = 35
     defaultConfig {
         applicationId "com.elishaazaria.sayboard"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 35
-        versionCode = 402013
-        versionName = "v4.2.4"
+        versionCode = 402016
+        versionName = "v4.2.7"
+
     }
     buildTypes {
         release {
             minifyEnabled true
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            ndk { debugSymbolLevel 'FULL' }
         }
     }
     splits {
@@ -67,7 +69,7 @@ androidComponents {
                     output.outputFileName.set("SpeakKeys_${abiFilter ?: "Universal"}.apk")
                 }
                 def abiVersionCode = abiCodes[abiFilter]
-                if (abiVersionCode != null) output.versionCode.set(402013 + abiVersionCode)
+                if (abiVersionCode != null) output.versionCode.set(402016 + abiVersionCode)
             }
         }
     }
@@ -121,6 +123,4 @@ dependencies {
     // Google Sign-In
     implementation 'com.google.android.gms:play-services-auth:21.3.0'
 
-    // RevenueCat (subscriptions)
-    implementation 'com.revenuecat.purchases:purchases:8.12.1'
 }

@@ -12,6 +12,3 @@
 # Firebase Auth
 -keepattributes Signature
 -keepattributes *Annotation*
-
-# RevenueCat
--keep class com.revenuecat.purchases.** { *; }

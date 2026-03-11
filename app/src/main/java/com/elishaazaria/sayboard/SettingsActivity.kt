@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.MutableLiveData
 import com.elishaazaria.sayboard.auth.AuthManager
-import com.elishaazaria.sayboard.auth.SubscriptionManager
 import com.elishaazaria.sayboard.theme.AppTheme
 import com.elishaazaria.sayboard.ui.AccountSettingsUi
 import com.elishaazaria.sayboard.ui.GrantPermissionUi
@@ -49,6 +48,7 @@ class SettingsActivity : ComponentActivity() {
 
     private val micGranted = MutableLiveData<Boolean>(true)
     private val imeGranted = MutableLiveData<Boolean>(true)
+    private val signedIn = MutableLiveData(AuthManager.isSignedIn)
 
     private val modelSettingsUi = ModelsSettingsUi(this)
 
@@ -58,13 +58,6 @@ class SettingsActivity : ComponentActivity() {
         checkPermissions()
 
         modelSettingsUi.onCreate()
-
-        // Refresh subscription status on launch
-        if (AuthManager.isSignedIn) {
-            CoroutineScope(Dispatchers.IO).launch {
-                SubscriptionManager.refreshStatus()
-            }
-        }
 
         setContent {
             AppTheme {
@@ -104,6 +97,7 @@ class SettingsActivity : ComponentActivity() {
     }
 
     @Suppress("deprecation")
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == AuthManager.RC_SIGN_IN) {
@@ -111,7 +105,7 @@ class SettingsActivity : ComponentActivity() {
                 val success = AuthManager.handleSignInResult(data)
                 if (success) {
                     Log.d("SettingsActivity", "Google Sign-In successful")
-                    SubscriptionManager.refreshStatus()
+                    signedIn.postValue(true)
                 }
             }
         }
@@ -175,15 +169,21 @@ class SettingsActivity : ComponentActivity() {
                     .statusBarsPadding()
                     .padding(10.dp)
             ) {
+                val isSignedIn = signedIn.observeAsState(AuthManager.isSignedIn)
                 when (selectedIndex) {
                     0 -> AccountSettingsUi(
                         activity = this@SettingsActivity,
+                        isSignedIn = isSignedIn.value,
                         onSignIn = {
                             @Suppress("deprecation")
                             startActivityForResult(
                                 AuthManager.getSignInIntent(this@SettingsActivity),
                                 AuthManager.RC_SIGN_IN
                             )
+                        },
+                        onSignOut = {
+                            AuthManager.signOut(this@SettingsActivity)
+                            signedIn.postValue(false)
                         }
                     )
                     1 -> modelSettingsUi.Content()

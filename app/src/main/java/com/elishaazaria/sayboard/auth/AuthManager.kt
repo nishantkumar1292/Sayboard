@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.tasks.await
 
+@Suppress("deprecation")
 object AuthManager {
     private const val TAG = "AuthManager"
 
