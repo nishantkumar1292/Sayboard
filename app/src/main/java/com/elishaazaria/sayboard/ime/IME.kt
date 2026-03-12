@@ -16,7 +16,6 @@ package com.elishaazaria.sayboard.ime
 import android.Manifest
 import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
-import android.media.AudioDeviceInfo
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -26,16 +25,12 @@ import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.core.app.ActivityCompat
-import com.elishaazaria.sayboard.BuildConfig
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.data.KeepScreenAwakeMode
 import com.elishaazaria.sayboard.recognition.ModelManager
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.speakKeysPreferenceModel
-import kotlin.math.roundToInt
 
 class IME : InputMethodService(), ModelManager.Listener {
     private val prefs by speakKeysPreferenceModel()
@@ -136,7 +131,6 @@ class IME : InputMethodService(), ModelManager.Listener {
         checkMicrophonePermission()
         editorInfo = info
         enterAction = findEnterAction()
-        viewManager.enterActionLD.postValue(enterAction)
         isRichTextEditor =
             editorInfo.inputType and InputType.TYPE_MASK_CLASS != EditorInfo.TYPE_NULL ||
                     editorInfo.initialSelStart >= 0 && editorInfo.initialSelEnd >= 0 // based on florisboard code
@@ -166,7 +160,7 @@ class IME : InputMethodService(), ModelManager.Listener {
         deferredResults.clear()
         cancelHoldTimers()
         setKeepScreenOn(false)
-        modelManager.stop()
+        modelManager.stop(!prefs.logicKeepModelInRam.get())
         if (prefs.logicAutoSwitchBack.get()) {
             // switch back
             actionManager.switchToLastIme(false)
@@ -212,60 +206,8 @@ class IME : InputMethodService(), ModelManager.Listener {
             }
         }
 
-        override fun backClicked() {
-            actionManager.switchToLastIme(true)
-        }
-
         override fun backspaceClicked() {
             actionManager.deleteLastChar()
-        }
-
-        private var initX = 0f
-        private var initY = 0f
-        private val threshold: Float
-            get() = resources.displayMetrics.densityDpi / 6f
-        private val charLen: Float
-            get() = resources.displayMetrics.densityDpi / 32f
-        private var swiping = false
-        private var restart = false
-
-        override fun backspaceTouchStart(offset: Offset) {
-            restart = true
-            swiping = false
-        }
-
-        override fun backspaceTouched(change: PointerInputChange, dragAmount: Float) {
-            if (restart) {
-                restart = false
-                initX = change.position.x
-                initY = change.position.y
-            }
-
-            var x = change.position.x - initX
-            val y = change.position.y - initY
-
-            Log.d("IME", "$x,$y")
-
-            if (x < -threshold) {
-                swiping = true
-            }
-            if (swiping) {
-                x = -x // x is negative
-                val amount = ((x - threshold) / charLen).roundToInt()
-                actionManager.selectCharsBack(amount)
-            }
-        }
-
-        override fun backspaceTouchEnd() {
-            if (swiping) actionManager.deleteSelection()
-        }
-
-        override fun returnClicked() {
-            actionManager.sendEnter()
-        }
-
-        override fun modelClicked() {
-            modelManager.switchToNextRecognizer(false)
         }
 
         override fun settingsClicked() {
@@ -274,10 +216,6 @@ class IME : InputMethodService(), ModelManager.Listener {
 
         override fun buttonClicked(text: String) {
             textManager.onText(text, TextManager.Mode.INSERT)
-        }
-
-        override fun deviceChanged(device: AudioDeviceInfo) {
-            modelManager.recordDevice = device
         }
 
         override fun toggleKeyboardMode() {
@@ -435,7 +373,6 @@ class IME : InputMethodService(), ModelManager.Listener {
         currentRecognizerSource?.stateLD?.removeObserver(viewManager)
         currentRecognizerSource = source
         source.stateLD.observe(lifecycleOwner, viewManager)
-        viewManager.recognizerNameLD.postValue(currentRecognizerSource!!.name)
     }
 
     override fun onTimeout() {

@@ -19,6 +19,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.runtime.Composable
@@ -61,6 +62,8 @@ fun QwertyLayout(
     onBackspace: () -> Unit,
     onCursorLeft: () -> Unit,
     onCursorRight: () -> Unit,
+    onInsertSpace: () -> Unit,
+    onToggleVoiceMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.LOWER) }
@@ -143,6 +146,19 @@ fun QwertyLayout(
                     CursorKey(Icons.Default.KeyboardArrowRight, specialKeyBg, textColor, 1f, onCursorRight, hapticFeedback)
                     CharKey(".", false, keyBg, textColor, onChar)
                 }
+                BottomUtilityRow(
+                    keyBg = keyBg,
+                    specialKeyBg = specialKeyBg,
+                    textColor = textColor,
+                    onInsertSpace = {
+                        hapticFeedback()
+                        onInsertSpace()
+                    },
+                    onToggleVoiceMode = {
+                        hapticFeedback()
+                        onToggleVoiceMode()
+                    }
+                )
             }
             SymbolPage.SYMBOLS_1 -> {
                 KeyRow(weight = 1f) {
@@ -175,6 +191,19 @@ fun QwertyLayout(
                     CursorKey(Icons.Default.KeyboardArrowRight, specialKeyBg, textColor, 1f, onCursorRight, hapticFeedback)
                     CharKey(".", false, keyBg, textColor, onChar)
                 }
+                BottomUtilityRow(
+                    keyBg = keyBg,
+                    specialKeyBg = specialKeyBg,
+                    textColor = textColor,
+                    onInsertSpace = {
+                        hapticFeedback()
+                        onInsertSpace()
+                    },
+                    onToggleVoiceMode = {
+                        hapticFeedback()
+                        onToggleVoiceMode()
+                    }
+                )
             }
             SymbolPage.SYMBOLS_2 -> {
                 KeyRow(weight = 1f) {
@@ -207,6 +236,19 @@ fun QwertyLayout(
                     CursorKey(Icons.Default.KeyboardArrowRight, specialKeyBg, textColor, 1f, onCursorRight, hapticFeedback)
                     CharKey(".", false, keyBg, textColor, onChar)
                 }
+                BottomUtilityRow(
+                    keyBg = keyBg,
+                    specialKeyBg = specialKeyBg,
+                    textColor = textColor,
+                    onInsertSpace = {
+                        hapticFeedback()
+                        onInsertSpace()
+                    },
+                    onToggleVoiceMode = {
+                        hapticFeedback()
+                        onToggleVoiceMode()
+                    }
+                )
             }
         }
     }
@@ -385,6 +427,86 @@ private fun RowScope.CursorKey(
             imageVector = icon,
             contentDescription = null,
             tint = textColor.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+private fun ColumnScope.BottomUtilityRow(
+    keyBg: androidx.compose.ui.graphics.Color,
+    specialKeyBg: androidx.compose.ui.graphics.Color,
+    textColor: androidx.compose.ui.graphics.Color,
+    onInsertSpace: () -> Unit,
+    onToggleVoiceMode: () -> Unit
+) {
+    KeyRow(weight = 1f) {
+        IconKey(
+            icon = Icons.Default.Mic,
+            bg = specialKeyBg,
+            tint = textColor.copy(alpha = 0.7f),
+            weight = 1.4f,
+            onClick = onToggleVoiceMode
+        )
+        SpaceKey(
+            bg = keyBg,
+            textColor = textColor,
+            weight = 4.6f,
+            onClick = onInsertSpace
+        )
+    }
+}
+
+@Composable
+private fun RowScope.IconKey(
+    icon: ImageVector,
+    bg: androidx.compose.ui.graphics.Color,
+    tint: androidx.compose.ui.graphics.Color,
+    weight: Float,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(weight)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(5.dp))
+            .background(bg)
+            .pointerInput(icon) {
+                detectTapGestures(onTap = { onClick() })
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint
+        )
+    }
+}
+
+@Composable
+private fun RowScope.SpaceKey(
+    bg: androidx.compose.ui.graphics.Color,
+    textColor: androidx.compose.ui.graphics.Color,
+    weight: Float,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(weight)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(5.dp))
+            .background(bg)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onClick() })
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "space",
+            color = textColor.copy(alpha = 0.75f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
         )
     }
 }

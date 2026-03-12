@@ -55,7 +55,7 @@ fun ApiSettingsUi() = ScrollablePreferenceLayout(speakKeysPreferenceModel()) {
         title = stringResource(R.string.sarvam_mode_title),
         entries = listPrefEntries {
             entry(key = "translit", label = "Transliterate (Roman)")
-            entry(key = "native", label = "Native Script")
+            entry(key = "transcribe", label = "Native Script")
         },
     )
     TextFieldPreference(

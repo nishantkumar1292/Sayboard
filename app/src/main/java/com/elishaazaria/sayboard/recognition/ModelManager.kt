@@ -250,7 +250,7 @@ class ModelManager(
         }
         speechService = null
         isRunning = false
-        stopRecognizerSource(forceFreeRam || !prefs.logicKeepModelInRam.get())
+        stopRecognizerSource(forceFreeRam)
     }
 
     private fun stopRecognizerSource(freeRam: Boolean) {

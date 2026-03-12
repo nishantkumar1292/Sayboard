@@ -37,9 +37,15 @@ class SarvamCloudProvider(private val context: Context) : RecognizerSourceProvid
         // Sarvam uses en-IN locale for Hinglish display
         val locale = Locale("en", "IN")
 
-        val mode = prefs.sarvamMode.get()
+        val mode = normalizeSarvamMode(prefs.sarvamMode.get())
         val languageCode = prefs.sarvamLanguage.get()
 
         return SarvamCloud(apiKey, locale, mode, languageCode)
+    }
+
+    private fun normalizeSarvamMode(mode: String): String = when (mode) {
+        "native" -> "transcribe"
+        "transcribe", "translit" -> mode
+        else -> "translit"
     }
 }

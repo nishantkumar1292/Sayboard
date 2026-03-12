@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -39,6 +40,7 @@ class ProxiedCloudRecognizer(
     private var bufferPosition = 0
 
     private var lastResult = ""
+    private var lastError: IOException? = null
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -49,6 +51,7 @@ class ProxiedCloudRecognizer(
     override fun reset() {
         bufferPosition = 0
         lastResult = ""
+        lastError = null
     }
 
     override fun acceptWaveForm(buffer: ShortArray?, nread: Int): Boolean {
@@ -71,15 +74,21 @@ class ProxiedCloudRecognizer(
         if (bufferPosition == 0) return ""
 
         Log.d(TAG, "Transcribing ${bufferPosition} samples via proxy ($provider)")
-        transcribe()
-        val result = lastResult
-        lastResult = ""
-        return result
+        try {
+            transcribe()
+            lastError?.let { throw it }
+            return lastResult
+        } finally {
+            bufferPosition = 0
+            lastResult = ""
+            lastError = null
+        }
     }
 
     private fun transcribe() {
         val wavBytes = createWavBytes()
         Log.d(TAG, "Created WAV: ${wavBytes.size} bytes")
+        lastError = null
 
         for (attempt in 0..MAX_RETRIES) {
             try {
@@ -106,12 +115,11 @@ class ProxiedCloudRecognizer(
                     .build()
 
                 Log.d(TAG, "Sending request to proxy (attempt ${attempt + 1})...")
-                val response = client.newCall(request).execute()
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string().orEmpty()
 
-                when {
-                    response.isSuccessful -> {
-                        val responseBody = response.body?.string()
-                        if (responseBody != null) {
+                    when {
+                        response.isSuccessful -> {
                             val json = JSONObject(responseBody)
                             var text = when (provider) {
                                 "sarvam" -> json.optString("transcript", "").trim()
@@ -122,35 +130,48 @@ class ProxiedCloudRecognizer(
                                 text = DevanagariTransliterator.transliterate(text)
                             }
 
+                            lastError = null
                             lastResult = removeSpaceForLocale(text)
+                            return // Success, no retry needed
                         }
-                        bufferPosition = 0
-                        return // Success, no retry needed
-                    }
-                    response.code == 402 -> {
-                        // Quota/access error - don't retry
-                        Log.w(TAG, "Access denied: ${response.code}")
-                        bufferPosition = 0
-                        return
-                    }
-                    else -> {
-                        Log.e(TAG, "Proxy error: ${response.code} (attempt ${attempt + 1}/${MAX_RETRIES + 1})")
-                        response.body?.close()
-                        if (attempt < MAX_RETRIES) {
-                            Thread.sleep(RETRY_DELAY_MS)
+                        response.code == 402 -> {
+                            val message = extractErrorMessage(responseBody)
+                            Log.w(TAG, "Access denied: ${response.code} - $message")
+                            lastError = IOException("Proxy access denied: $message")
+                            return
+                        }
+                        else -> {
+                            val message = extractErrorMessage(responseBody)
+                            Log.e(
+                                TAG,
+                                "Proxy error: ${response.code} - $message (attempt ${attempt + 1}/${MAX_RETRIES + 1})"
+                            )
+                            lastError = IOException("Proxy error ${response.code}: $message")
                         }
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Transcription via proxy failed (attempt ${attempt + 1}/${MAX_RETRIES + 1})", e)
+                lastError = if (e is IOException) e else IOException("Proxy transcription failed", e)
                 if (attempt < MAX_RETRIES) {
                     Thread.sleep(RETRY_DELAY_MS)
                 }
             }
         }
 
-        Log.e(TAG, "All ${MAX_RETRIES + 1} transcription attempts failed")
-        bufferPosition = 0
+        Log.e(TAG, "All ${MAX_RETRIES + 1} transcription attempts failed", lastError)
+    }
+
+    private fun extractErrorMessage(responseBody: String): String {
+        if (responseBody.isBlank()) return "Empty response body"
+        return try {
+            val json = JSONObject(responseBody)
+            json.optString("error")
+                .ifBlank { json.optString("message") }
+                .ifBlank { responseBody.take(200) }
+        } catch (_: Exception) {
+            responseBody.take(200)
+        }
     }
 
     private fun createWavBytes(): ByteArray {

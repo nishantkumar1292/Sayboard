@@ -18,8 +18,8 @@
     <string name="mic_info_recording">Say something</string>
 
     <string name="toast_error_no_previous_ime">No previous IME!</string>
-    <string name="mic_error_no_recognizers">No recognizers configured yet.\nTap API (bottom right) and add one or more API keys (OpenAI or Sarvam).</string>
-    <string name="mic_error_no_recognizers_tap_to_configure">No recognizers configured yet.\nTap API (bottom right) and add one or more API keys (OpenAI or Sarvam).</string>
+    <string name="mic_error_no_recognizers">No recognizers configured yet.\nTap Settings and add one or more API keys (OpenAI or Sarvam).</string>
+    <string name="mic_error_no_recognizers_tap_to_configure">No recognizers configured yet.\nTap Settings and add one or more API keys (OpenAI or Sarvam).</string>
     <string name="mic_error_no_permission">Microphone permission not granted!</string>
     <string name="mic_error_recognizer_error">Recognizer error</string>
     <string name="mic_error_mic_in_use">Microphone is already in use!</string>
@@ -40,6 +40,10 @@
     <string name="title_ui">User Interface</string>
     <string name="title_keyboard">Keyboard</string>
     <string name="title_logic">Logic</string>
+    <string name="title_advanced_settings">Advanced Settings</string>
+    <string name="tab_test">Test</string>
+    <string name="tab_models">Models</string>
+    <string name="tab_profile">Profile</string>
 
     <!--  Setup  -->
 
@@ -141,6 +145,14 @@
     <string name="sarvam_mode_title">Output Mode</string>
     <string name="sarvam_language_title">Language Code</string>
     <string name="sarvam_language_summary">Language code (e.g. hi-IN). \"unknown\" for auto-detect.</string>
+    <string name="engine_speakkeys_auto">SpeakKeys Auto</string>
+    <string name="engine_sarvam">Sarvam</string>
+    <string name="engine_badge_hosted">HOSTED</string>
+    <string name="engine_badge_byok">BYOK</string>
+    <string name="engine_requires_sign_in">Sign in to use this engine</string>
+    <string name="engine_requires_api_key">Add a Sarvam API key to use this engine</string>
+    <string name="models_header_subtitle">Choose how speech is transcribed and adjust engine-specific settings.</string>
+    <string name="models_available_engines">AVAILABLE ENGINES</string>
 
     <string name="button_save">Save</string>
     <string name="button_clear">Clear</string>
@@ -154,8 +166,21 @@
     <string name="account_sign_out">Sign Out</string>
     <string name="account_developer_hint">Developer? Go to the API tab to use your own API keys instead.</string>
     <string name="error_proxy_auth">Authentication failed. Please sign in again.</string>
+    <string name="profile_other_settings">OTHER SETTINGS</string>
+    <string name="profile_advanced_settings">Advanced Settings</string>
 
     <!--  Onboarding sign-in prompt  -->
     <string name="onboarding_sign_in_prompt">Sign in to get started</string>
     <string name="onboarding_skip_sign_in">Skip — I\'ll use my own API keys</string>
+
+    <!--  Test Tab  -->
+    <string name="test_tagline">Check that your voice typing setup is ready.</string>
+    <string name="test_status_label">STATUS</string>
+    <string name="test_status_active">Active</string>
+    <string name="test_status_inactive">Needs Setup</string>
+    <string name="test_current_model">CURRENT ENGINE</string>
+    <string name="test_drive_title">Test Drive</string>
+    <string name="test_drive_hint">Try typing here with SpeakKeys once your setup is active.</string>
+    <string name="test_drive_clear">Clear</string>
+    <string name="test_hint_select_keyboard">Enable microphone access, enable the keyboard, and select an engine to start testing.</string>
 </resources>

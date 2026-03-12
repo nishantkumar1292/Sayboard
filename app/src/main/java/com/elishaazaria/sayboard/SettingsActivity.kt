@@ -13,12 +13,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
@@ -28,18 +27,23 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.MutableLiveData
 import com.elishaazaria.sayboard.auth.AuthManager
+import com.elishaazaria.sayboard.data.ModelType
 import com.elishaazaria.sayboard.theme.AppTheme
-import com.elishaazaria.sayboard.ui.AccountSettingsUi
+import com.elishaazaria.sayboard.theme.DarkSurface
+import com.elishaazaria.sayboard.theme.Primary
+import com.elishaazaria.sayboard.ui.AdvancedSettingsActivity
 import com.elishaazaria.sayboard.ui.GrantPermissionUi
-import com.elishaazaria.sayboard.ui.KeyboardSettingsUi
-import com.elishaazaria.sayboard.ui.LogicSettingsUi
 import com.elishaazaria.sayboard.ui.ModelsSettingsUi
-import com.elishaazaria.sayboard.ui.ApiSettingsUi
+import com.elishaazaria.sayboard.ui.ModelsTabUi
+import com.elishaazaria.sayboard.ui.ProfileTabUi
+import com.elishaazaria.sayboard.ui.TestTabUi
+import dev.patrickgold.jetpref.datastore.model.observeAsState
 import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
@@ -49,6 +53,7 @@ class SettingsActivity : ComponentActivity() {
     private val signedIn = MutableLiveData(AuthManager.isSignedIn)
 
     private val modelSettingsUi = ModelsSettingsUi(this)
+    private val prefs by speakKeysPreferenceModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +63,7 @@ class SettingsActivity : ComponentActivity() {
         modelSettingsUi.onCreate()
 
         setContent {
-            AppTheme {
+            AppTheme(darkTheme = true) {
                 val micGrantedState = micGranted.observeAsState(true)
                 val imeGrantedState = imeGranted.observeAsState(true)
                 if (micGrantedState.value && imeGrantedState.value) {
@@ -86,7 +91,6 @@ class SettingsActivity : ComponentActivity() {
                             }
                         },
                         onSkipSignIn = {
-                            // Permissions are granted, skip sign-in and go to main UI
                             checkPermissions()
                         }
                     )
@@ -97,53 +101,43 @@ class SettingsActivity : ComponentActivity() {
 
     @Composable
     private fun MainUi() {
-        val tabs = listOf<String>(
-            stringResource(id = R.string.title_account),
-            stringResource(id = R.string.title_models),
-            stringResource(id = R.string.title_keyboard),
-            stringResource(id = R.string.title_logic),
-            stringResource(id = R.string.title_api)
+        val tabs = listOf(
+            stringResource(id = R.string.tab_test),
+            stringResource(id = R.string.tab_models),
+            stringResource(id = R.string.tab_profile)
         )
-        var selectedIndex by remember {
-            mutableIntStateOf(0)
-        }
+        var selectedIndex by remember { mutableIntStateOf(0) }
 
         Scaffold(bottomBar = {
-            BottomNavigation(modifier = Modifier.navigationBarsPadding()) {
+            BottomNavigation(
+                modifier = Modifier.navigationBarsPadding(),
+                backgroundColor = DarkSurface,
+                contentColor = MaterialTheme.colors.onSurface
+            ) {
                 tabs.forEachIndexed { index, tab ->
                     BottomNavigationItem(
                         selected = index == selectedIndex,
                         onClick = { selectedIndex = index },
+                        selectedContentColor = Primary,
+                        unselectedContentColor = Color.Gray,
                         icon = {
                             when (index) {
                                 0 -> Icon(
-                                    imageVector = Icons.Default.Person,
+                                    imageVector = Icons.Default.Mic,
                                     contentDescription = null
                                 )
-
                                 1 -> Icon(
-                                    imageVector = Icons.Default.Home,
-                                    contentDescription = null
-                                )
-
-                                2 -> Icon(
-                                    imageVector = Icons.Default.Keyboard,
-                                    contentDescription = null
-                                )
-
-                                3 -> Icon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = null
                                 )
-
-                                4 -> Icon(
-                                    imageVector = Icons.Default.Lock,
+                                2 -> Icon(
+                                    imageVector = Icons.Default.Person,
                                     contentDescription = null
                                 )
                             }
-                        }, label = {
-                            Text(text = tab)
-                        })
+                        },
+                        label = { Text(text = tab) }
+                    )
                 }
             }
         }) {
@@ -151,33 +145,112 @@ class SettingsActivity : ComponentActivity() {
                 modifier = Modifier
                     .padding(it)
                     .statusBarsPadding()
-                    .padding(10.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 val isSignedIn = signedIn.observeAsState(AuthManager.isSignedIn)
+                val selectedEngine by prefs.selectedEngine.observeAsState()
+                val sarvamKey by prefs.sarvamApiKey.observeAsState()
+                val lastSelectedModelPath by prefs.lastSelectedModelPath.observeAsState()
+
                 when (selectedIndex) {
-                    0 -> AccountSettingsUi(
-                        activity = this@SettingsActivity,
-                        isSignedIn = isSignedIn.value,
-                        onSignIn = {
-                            lifecycleScope.launch {
-                                if (AuthManager.signIn(this@SettingsActivity)) {
-                                    signedIn.postValue(true)
-                                    modelSettingsUi.onResume()
-                                }
-                            }
-                        },
-                        onSignOut = {
-                            lifecycleScope.launch {
-                                AuthManager.signOut(this@SettingsActivity)
-                                signedIn.postValue(false)
-                                modelSettingsUi.onResume()
+                    0 -> {
+                        val micOk = micGranted.observeAsState(true).value
+                        val imeOk = imeGranted.observeAsState(true).value
+                        val isActive = micOk && imeOk && (isSignedIn.value || sarvamKey.isNotEmpty())
+                        val modelName = when (lastSelectedModelPath) {
+                            "sarvam://cloud" -> getString(R.string.engine_sarvam) + " (API Key)"
+                            "proxied://sarvam" -> getString(R.string.engine_speakkeys_auto) + " (Sarvam)"
+                            else -> when (selectedEngine) {
+                                "sarvam" -> getString(R.string.engine_sarvam) + " (API Key)"
+                                else -> getString(R.string.engine_speakkeys_auto) + " (Sarvam)"
                             }
                         }
-                    )
-                    1 -> modelSettingsUi.Content()
-                    2 -> KeyboardSettingsUi()
-                    3 -> LogicSettingsUi(this@SettingsActivity)
-                    4 -> ApiSettingsUi()
+                        TestTabUi(
+                            isActive = isActive,
+                            currentModelName = modelName,
+                            onNavigateToModels = { selectedIndex = 1 }
+                        )
+                    }
+                    1 -> {
+                        val whisperLang by prefs.whisperLanguage.observeAsState()
+                        val whisperPrmt by prefs.whisperPrompt.observeAsState()
+                        val whisperTranslit by prefs.whisperTransliterateToRoman.observeAsState()
+                        val sarvamModeVal by prefs.sarvamMode.observeAsState()
+                        val sarvamLangVal by prefs.sarvamLanguage.observeAsState()
+
+                        ModelsTabUi(
+                            selectedEngine = selectedEngine,
+                            isSignedIn = isSignedIn.value,
+                            hasSarvamKey = sarvamKey.isNotEmpty(),
+                            onSelectEngine = { engine ->
+                                prefs.selectedEngine.set(engine)
+                                val currentModels = prefs.modelsOrder.get().toMutableList()
+                                val priorityTypes = when (engine) {
+                                    "sarvam" -> setOf(ModelType.SarvamCloud)
+                                    else -> setOf(ModelType.ProxiedSarvamCloud)
+                                }
+                                val prioritized = currentModels.filter { m -> m.type in priorityTypes }
+                                val rest = currentModels.filter { m -> m.type !in priorityTypes }
+                                prefs.modelsOrder.set(prioritized + rest)
+                                prefs.lastSelectedModelPath.set(
+                                    when (engine) {
+                                        "sarvam" -> "sarvam://cloud"
+                                        else -> "proxied://sarvam"
+                                    }
+                                )
+                            },
+                            onRequireSignIn = {
+                                lifecycleScope.launch {
+                                    if (AuthManager.signIn(this@SettingsActivity)) {
+                                        signedIn.postValue(true)
+                                        modelSettingsUi.onResume()
+                                    }
+                                }
+                            },
+                            onRequireApiKey = {
+                                startActivity(
+                                    Intent(this@SettingsActivity, AdvancedSettingsActivity::class.java)
+                                )
+                            },
+                            whisperLanguage = whisperLang,
+                            onWhisperLanguageChange = { prefs.whisperLanguage.set(it) },
+                            whisperPrompt = whisperPrmt,
+                            onWhisperPromptChange = { prefs.whisperPrompt.set(it) },
+                            whisperTransliterate = whisperTranslit,
+                            onWhisperTransliterateChange = { prefs.whisperTransliterateToRoman.set(it) },
+                            sarvamApiKey = sarvamKey,
+                            onSarvamApiKeyChange = { prefs.sarvamApiKey.set(it) },
+                            sarvamMode = sarvamModeVal,
+                            onSarvamModeChange = { prefs.sarvamMode.set(it) },
+                            sarvamLanguage = sarvamLangVal,
+                            onSarvamLanguageChange = { prefs.sarvamLanguage.set(it) }
+                        )
+                    }
+                    2 -> {
+                        ProfileTabUi(
+                            isSignedIn = isSignedIn.value,
+                            onSignIn = {
+                                lifecycleScope.launch {
+                                    if (AuthManager.signIn(this@SettingsActivity)) {
+                                        signedIn.postValue(true)
+                                        modelSettingsUi.onResume()
+                                    }
+                                }
+                            },
+                            onSignOut = {
+                                lifecycleScope.launch {
+                                    AuthManager.signOut(this@SettingsActivity)
+                                    signedIn.postValue(false)
+                                    modelSettingsUi.onResume()
+                                }
+                            },
+                            onAdvancedSettings = {
+                                startActivity(
+                                    Intent(this@SettingsActivity, AdvancedSettingsActivity::class.java)
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -221,8 +221,10 @@ export const transcribe = functions
         );
       }
 
-      // 5. Deduct credit if applicable
-      await deductCredit(uid);
+      // 5. Deduct credit only after a successful upstream transcription
+      if (result.status >= 200 && result.status < 300) {
+        await deductCredit(uid);
+      }
 
       // 6. Return response
       res.status(result.status).send(result.body);

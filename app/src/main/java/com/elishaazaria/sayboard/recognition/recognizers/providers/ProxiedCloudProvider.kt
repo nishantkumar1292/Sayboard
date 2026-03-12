@@ -28,11 +28,6 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
 
         return listOf(
             InstalledModelReference(
-                path = "proxied://whisper",
-                name = "Whisper Cloud (Proxied)",
-                type = ModelType.ProxiedWhisperCloud
-            ),
-            InstalledModelReference(
                 path = "proxied://sarvam",
                 name = "Sarvam Cloud (Proxied)",
                 type = ModelType.ProxiedSarvamCloud
@@ -41,8 +36,7 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
     }
 
     override fun recognizerSourceForModel(localModel: InstalledModelReference): RecognizerSource? {
-        if (localModel.type != ModelType.ProxiedWhisperCloud &&
-            localModel.type != ModelType.ProxiedSarvamCloud) {
+        if (localModel.type != ModelType.ProxiedSarvamCloud) {
             return null
         }
 
@@ -50,22 +44,9 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
 
         // ID token is fetched lazily in ProxiedCloud.initialize() on the background thread
         return when (localModel.type) {
-            ModelType.ProxiedWhisperCloud -> {
-                val languageCode = prefs.whisperLanguage.get()
-                val locale = if (languageCode.isNotEmpty()) Locale(languageCode) else Locale.ROOT
-                val prompt = prefs.whisperPrompt.get()
-                val transliterateToRoman = prefs.whisperTransliterateToRoman.get()
-
-                val params = mutableMapOf<String, String>()
-                params["model"] = "whisper-1"
-                if (languageCode.isNotEmpty()) params["language"] = languageCode
-                if (prompt.isNotEmpty()) params["prompt"] = prompt
-
-                ProxiedCloud("whisper", locale, params, transliterateToRoman)
-            }
             ModelType.ProxiedSarvamCloud -> {
                 val locale = Locale("en", "IN")
-                val mode = prefs.sarvamMode.get()
+                val mode = normalizeSarvamMode(prefs.sarvamMode.get())
                 val languageCode = prefs.sarvamLanguage.get()
 
                 val params = mapOf(
@@ -78,5 +59,11 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
             }
             else -> null
         }
+    }
+
+    private fun normalizeSarvamMode(mode: String): String = when (mode) {
+        "native" -> "transcribe"
+        "transcribe", "translit" -> mode
+        else -> "translit"
     }
 }

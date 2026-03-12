@@ -47,6 +47,10 @@
                 android:value="" />
         </activity>
 
+        <activity
+            android:name="com.elishaazaria.sayboard.ui.AdvancedSettingsActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

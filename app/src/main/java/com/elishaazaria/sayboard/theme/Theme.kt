@@ -15,8 +15,8 @@ private val DarkColorPalette = darkColors(
     background = DarkBackground,
     surface = DarkSurface,
     onPrimary = Color.White,
-    onBackground = Color(0xFFE0E0E0),
-    onSurface = Color(0xFFE0E0E0),
+    onBackground = Color(0xFFF0F0F0),
+    onSurface = Color(0xFFF0F0F0),
 )
 
 private val LightColorPalette = lightColors(

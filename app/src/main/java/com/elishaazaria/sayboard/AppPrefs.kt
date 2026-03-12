@@ -3,11 +3,7 @@ package com.elishaazaria.sayboard
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.elishaazaria.sayboard.data.KeepScreenAwakeMode
-import com.elishaazaria.sayboard.utils.KeysListSerializer
 import com.elishaazaria.sayboard.utils.ModelListSerializer
-import com.elishaazaria.sayboard.utils.leftDefaultKeysList
-import com.elishaazaria.sayboard.utils.rightDefaultKeysList
-import com.elishaazaria.sayboard.utils.topDefaultKeysList
 import dev.patrickgold.jetpref.datastore.JetPref
 import dev.patrickgold.jetpref.datastore.model.PreferenceModel
 
@@ -68,24 +64,6 @@ class AppPrefs : PreferenceModel("example-app-preferences") {
     val keyboardHeightLandscape = float(
         key = "f_keyboard_height_landscape",
         default = 0.5f
-    )
-
-    val keyboardKeysTop = custom(
-        key = "sl_keyboard_keys_top",
-        default = topDefaultKeysList,
-        serializer = KeysListSerializer()
-    )
-
-    val keyboardKeysLeft = custom(
-        key = "sl_keyboard_keys_left",
-        default = leftDefaultKeysList,
-        serializer = KeysListSerializer()
-    )
-
-    val keyboardKeysRight = custom(
-        key = "sl_keyboard_keys_right",
-        default = rightDefaultKeysList,
-        serializer = KeysListSerializer()
     )
 
     val uiDayForegroundMaterialYou = boolean(
@@ -159,5 +137,11 @@ class AppPrefs : PreferenceModel("example-app-preferences") {
     val sarvamLanguage = string(
         key = "s_sarvam_language",
         default = "unknown"
+    )
+
+    // Engine selection: "proxied" (SpeakKeys Auto) or "sarvam" (BYOK Sarvam)
+    val selectedEngine = string(
+        key = "s_selected_engine",
+        default = "proxied"
     )
 }

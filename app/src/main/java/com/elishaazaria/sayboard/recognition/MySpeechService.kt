@@ -116,6 +116,16 @@ class MySpeechService @RequiresPermission(Manifest.permission.RECORD_AUDIO) cons
         }
     }
 
+    private fun stopRecorderSafely() {
+        if (recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+            try {
+                recorder.stop()
+            } catch (_: IllegalStateException) {
+                // Recorder can already be stopping during teardown.
+            }
+        }
+    }
+
     private inner class RecognizerThread @JvmOverloads constructor(
         var listener: RecognitionListener,
         timeout: Int = -1
@@ -147,50 +157,55 @@ class MySpeechService @RequiresPermission(Manifest.permission.RECORD_AUDIO) cons
         }
 
         override fun run() {
-            recorder.startRecording()
-            if (recorder.recordingState == 1) {
-                recorder.stop()
-                val ioe =
-                    IOException("Failed to start recording. Microphone might be already in use.")
-                mainHandler.post { listener.onError(ioe) }
-            }
-            val buffer = ShortArray(bufferSize)
-            while (!interrupted() && (timeoutSamples == -1 || remainingSamples > 0)) {
-                val nread = recorder.read(buffer, 0, buffer.size)
-                if (!paused) {
-                    if (reset) {
-                        recognizer.reset()
-                        reset = false
-                    }
-                    if (nread < 0) {
-                        throw RuntimeException("error reading audio buffer")
-                    }
-                    var result: String?
-                    if (recognizer.acceptWaveForm(buffer, nread)) {
-                        result = recognizer.getResult()
-                        mainHandler.post { listener.onResult(result) }
-                    } else {
-                        result = recognizer.getPartialResult()
-                        mainHandler.post { listener.onPartialResult(result) }
-                    }
-                    if (timeoutSamples != -1) {
-                        remainingSamples -= nread
+            try {
+                recorder.startRecording()
+                if (recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+                    throw IOException("Failed to start recording. Microphone might be already in use.")
+                }
+
+                val buffer = ShortArray(bufferSize)
+                while (!interrupted() && (timeoutSamples == -1 || remainingSamples > 0)) {
+                    val nread = recorder.read(buffer, 0, buffer.size)
+                    if (!paused) {
+                        if (reset) {
+                            recognizer.reset()
+                            reset = false
+                        }
+                        if (nread < 0) {
+                            throw RuntimeException("error reading audio buffer")
+                        }
+                        var result: String?
+                        if (recognizer.acceptWaveForm(buffer, nread)) {
+                            result = recognizer.getResult()
+                            mainHandler.post { listener.onResult(result) }
+                        } else {
+                            result = recognizer.getPartialResult()
+                            mainHandler.post { listener.onPartialResult(result) }
+                        }
+                        if (timeoutSamples != -1) {
+                            remainingSamples -= nread
+                        }
                     }
                 }
-            }
-            recorder.stop()
-            // Always get final result (needed for batch recognizers like Whisper)
-            // Only skip the callback if paused AND result is empty
-            val finalResult = recognizer.getFinalResult()
-            if (!paused) {
-                if (timeoutSamples != -1 && remainingSamples <= 0) {
-                    mainHandler.post { listener.onTimeout() }
-                } else {
+
+                stopRecorderSafely()
+
+                // Always get final result (needed for batch recognizers like Whisper)
+                // Only skip the callback if paused AND result is empty
+                val finalResult = recognizer.getFinalResult()
+                if (!paused) {
+                    if (timeoutSamples != -1 && remainingSamples <= 0) {
+                        mainHandler.post { listener.onTimeout() }
+                    } else {
+                        mainHandler.post { listener.onFinalResult(finalResult) }
+                    }
+                } else if (finalResult.isNotEmpty()) {
+                    // Even when paused, if there's a result (batch recognizer), show it
                     mainHandler.post { listener.onFinalResult(finalResult) }
                 }
-            } else if (finalResult.isNotEmpty()) {
-                // Even when paused, if there's a result (batch recognizer), show it
-                mainHandler.post { listener.onFinalResult(finalResult) }
+            } catch (e: Exception) {
+                stopRecorderSafely()
+                mainHandler.post { listener.onError(e) }
             }
         }
     }
