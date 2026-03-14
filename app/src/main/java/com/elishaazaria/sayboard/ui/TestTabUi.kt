@@ -1,5 +1,7 @@
 package com.elishaazaria.sayboard.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,13 +25,16 @@ import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,10 +44,12 @@ import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.theme.ActiveGreen
 import com.elishaazaria.sayboard.theme.DarkSurfaceVariant
 import com.elishaazaria.sayboard.theme.Primary
+import com.elishaazaria.sayboard.theme.WarningOrange
 
 @Composable
 fun TestTabUi(
     isActive: Boolean,
+    needsAuth: Boolean,
     currentModelName: String,
     onNavigateToModels: () -> Unit
 ) {
@@ -109,7 +116,7 @@ fun TestTabUi(
                 }
             }
 
-            // CURRENT MODEL card
+            // CURRENT ENGINE card
             Card(
                 modifier = Modifier
                     .weight(1f)
@@ -128,18 +135,38 @@ fun TestTabUi(
                         fontWeight = FontWeight.SemiBold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Mic,
-                            contentDescription = null,
-                            tint = Primary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (needsAuth) {
+                            val scale = remember { Animatable(1f) }
+                            LaunchedEffect(Unit) {
+                                scale.animateTo(1.15f, animationSpec = tween(200))
+                                scale.animateTo(1f, animationSpec = tween(200))
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = WarningOrange,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .scale(scale.value)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = currentModelName,
+                            text = if (needsAuth)
+                                stringResource(R.string.test_engine_needs_setup)
+                            else
+                                currentModelName,
                             style = MaterialTheme.typography.body1,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            color = if (needsAuth) WarningOrange else Color.Unspecified
                         )
                     }
                 }
@@ -183,14 +210,6 @@ fun TestTabUi(
             modifier = Modifier.align(Alignment.End)
         ) {
             Text(stringResource(R.string.test_drive_clear))
-        }
-
-        if (!isActive) {
-            Text(
-                text = stringResource(R.string.test_hint_select_keyboard),
-                style = MaterialTheme.typography.body2,
-                color = MaterialTheme.colors.onBackground.copy(alpha = 0.5f)
-            )
         }
     }
 }

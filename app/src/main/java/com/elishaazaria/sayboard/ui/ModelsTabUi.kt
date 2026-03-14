@@ -61,8 +61,7 @@ fun ModelsTabUi(
     isSignedIn: Boolean,
     hasSarvamKey: Boolean,
     onSelectEngine: (String) -> Unit,
-    onRequireSignIn: () -> Unit,
-    onRequireApiKey: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     // Whisper settings
     whisperLanguage: String,
     onWhisperLanguageChange: (String) -> Unit,
@@ -123,7 +122,7 @@ fun ModelsTabUi(
             isExpanded = expandedEngine == "proxied",
             unavailableLabel = stringResource(R.string.engine_requires_sign_in),
             onClick = {
-                if (isSignedIn) onSelectEngine("proxied") else onRequireSignIn()
+                if (isSignedIn) onSelectEngine("proxied") else onNavigateToProfile()
             },
             onToggleExpand = {
                 expandedEngine = if (expandedEngine == "proxied") null else "proxied"
@@ -163,7 +162,8 @@ fun ModelsTabUi(
             isExpanded = expandedEngine == "sarvam",
             unavailableLabel = stringResource(R.string.engine_requires_api_key),
             onClick = {
-                if (hasSarvamKey) onSelectEngine("sarvam") else onRequireApiKey()
+                if (hasSarvamKey) onSelectEngine("sarvam")
+                else expandedEngine = "sarvam"  // auto-expand settings to show API key field
             },
             onToggleExpand = {
                 expandedEngine = if (expandedEngine == "sarvam") null else "sarvam"
@@ -182,7 +182,10 @@ fun ModelsTabUi(
                     dialogTitle = stringResource(R.string.sarvam_api_key_title),
                     currentValue = sarvamApiKey,
                     isPassword = true,
-                    onSave = onSarvamApiKeyChange
+                    onSave = { key ->
+                        onSarvamApiKeyChange(key)
+                        if (key.isNotEmpty()) onSelectEngine("sarvam")
+                    }
                 )
                 DropdownSettingRow(
                     label = stringResource(R.string.sarvam_mode_title),

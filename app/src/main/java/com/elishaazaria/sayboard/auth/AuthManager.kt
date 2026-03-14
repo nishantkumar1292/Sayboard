@@ -7,7 +7,9 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import com.elishaazaria.sayboard.AppCtx
 import com.elishaazaria.sayboard.R
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -74,16 +76,31 @@ object AuthManager {
         return try {
             val credentialManager = CredentialManager.create(context)
 
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setServerClientId(webClientId())
-                .setFilterByAuthorizedAccounts(false)
-                .build()
+            // Try One Tap first, fall back to full Sign In With Google button
+            val result = try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setServerClientId(webClientId())
+                    .setFilterByAuthorizedAccounts(false)
+                    .build()
 
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
 
-            val result = credentialManager.getCredential(context, request)
+                credentialManager.getCredential(context, request)
+            } catch (e: NoCredentialException) {
+                Log.w(TAG, "One Tap failed, falling back to Sign In With Google", e)
+
+                val signInOption = GetSignInWithGoogleOption.Builder(webClientId())
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(signInOption)
+                    .build()
+
+                credentialManager.getCredential(context, request)
+            }
+
             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
             val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
             auth.signInWithCredential(firebaseCredential).await()

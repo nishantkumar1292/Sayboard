@@ -165,8 +165,10 @@ class SettingsActivity : ComponentActivity() {
                                 else -> getString(R.string.engine_speakkeys_auto) + " (Sarvam)"
                             }
                         }
+                        val needsAuth = !isSignedIn.value && sarvamKey.isEmpty()
                         TestTabUi(
                             isActive = isActive,
+                            needsAuth = needsAuth,
                             currentModelName = modelName,
                             onNavigateToModels = { selectedIndex = 1 }
                         )
@@ -199,19 +201,7 @@ class SettingsActivity : ComponentActivity() {
                                     }
                                 )
                             },
-                            onRequireSignIn = {
-                                lifecycleScope.launch {
-                                    if (AuthManager.signIn(this@SettingsActivity)) {
-                                        signedIn.postValue(true)
-                                        modelSettingsUi.onResume()
-                                    }
-                                }
-                            },
-                            onRequireApiKey = {
-                                startActivity(
-                                    Intent(this@SettingsActivity, AdvancedSettingsActivity::class.java)
-                                )
-                            },
+                            onNavigateToProfile = { selectedIndex = 2 },
                             whisperLanguage = whisperLang,
                             onWhisperLanguageChange = { prefs.whisperLanguage.set(it) },
                             whisperPrompt = whisperPrmt,
