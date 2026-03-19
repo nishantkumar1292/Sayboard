@@ -79,7 +79,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import com.elishaazaria.sayboard.AppPrefs
 import com.elishaazaria.sayboard.Constants
 import com.elishaazaria.sayboard.R
@@ -99,7 +98,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @SuppressLint("ViewConstructor")
-class ViewManager(private val ime: Context) : AbstractComposeView(ime), Observer<RecognizerState> {
+class ViewManager(private val ime: Context) : AbstractComposeView(ime) {
     private val prefs by speakKeysPreferenceModel()
 
     val stateLD = MutableLiveData(STATE_INITIAL)
@@ -243,13 +242,13 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime), Observer
         }
     }
 
-    override fun onChanged(value: RecognizerState) {
+    fun onRecognizerStateChanged(value: RecognizerState) {
         when (value) {
-            RecognizerState.CLOSED, RecognizerState.NONE -> stateLD.setValue(STATE_INITIAL)
-            RecognizerState.LOADING -> stateLD.setValue(STATE_LOADING)
-            RecognizerState.READY -> stateLD.setValue(STATE_READY)
-            RecognizerState.IN_RAM -> stateLD.setValue(STATE_PAUSED)
-            RecognizerState.ERROR -> stateLD.setValue(STATE_ERROR)
+            RecognizerState.CLOSED, RecognizerState.NONE -> stateLD.postValue(STATE_INITIAL)
+            RecognizerState.LOADING -> stateLD.postValue(STATE_LOADING)
+            RecognizerState.READY -> stateLD.postValue(STATE_READY)
+            RecognizerState.IN_RAM -> stateLD.postValue(STATE_PAUSED)
+            RecognizerState.ERROR -> stateLD.postValue(STATE_ERROR)
         }
     }
 

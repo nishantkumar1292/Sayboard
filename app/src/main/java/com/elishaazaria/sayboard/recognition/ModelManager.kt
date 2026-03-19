@@ -4,17 +4,15 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
-import android.util.Log
 import androidx.annotation.StringRes
+import com.elishaazaria.sayboard.recognition.logging.Logger
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.data.InstalledModelReference
-import com.elishaazaria.sayboard.ime.ViewManager
+import com.elishaazaria.sayboard.recognition.auth.AuthTokenProvider
+import com.elishaazaria.sayboard.recognition.preferences.PreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.providers.Providers
-import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.Executor
@@ -22,9 +20,10 @@ import java.util.concurrent.Executors
 
 class ModelManager(
     private val context: Context,
-    private val listener: Listener
+    private val listener: Listener,
+    private val prefsRepo: PreferencesRepository,
+    authTokenProvider: AuthTokenProvider
 ) {
-    private val prefs by speakKeysPreferenceModel()
     private var speechService: MySpeechService? = null
     var isRunning = false
         private set
@@ -32,7 +31,7 @@ class ModelManager(
     val openSettingsOnMic: Boolean
         get() = recognizerSources.size == 0
 
-    private var recognizerSourceProviders = Providers(context)
+    private var recognizerSourceProviders = Providers(prefsRepo, authTokenProvider)
 
     private var recognizerSourceModels: List<InstalledModelReference> = listOf()
     private var recognizerSources: MutableList<RecognizerSource> = ArrayList()
@@ -48,11 +47,11 @@ class ModelManager(
     private fun saveSelectedModel() {
         val source = currentRecognizerSource ?: return
         val model = recognizerSourceModels.getOrNull(currentRecognizerSourceIndex) ?: return
-        prefs.lastSelectedModelPath.set(model.path)
+        prefsRepo.setLastSelectedModelPath(model.path)
     }
 
     private fun restoreSelectedModelIndex(): Int {
-        val lastPath = prefs.lastSelectedModelPath.get()
+        val lastPath = prefsRepo.getLastSelectedModelPath()
         if (lastPath.isEmpty()) return 0
         val index = recognizerSourceModels.indexOfFirst { it.path == lastPath }
         return if (index >= 0) index else 0
@@ -66,12 +65,11 @@ class ModelManager(
         saveSelectedModel()
         listener.onRecognizerSource(currentRecognizerSource!!)
 
-        val onLoaded = Observer { r: RecognizerSource? ->
+        currentRecognizerSource!!.initialize(executor) {
             if (autoStart) {
                 start(attributionContext) // execute after initialize
             }
         }
-        currentRecognizerSource!!.initialize(executor, onLoaded)
     }
 
     val currentRecognizerSourceAddSpaces: Boolean
@@ -154,14 +152,14 @@ class ModelManager(
 
     fun start(attributionContext: Context? = null) {
         if (currentRecognizerSource == null) {
-            Log.w(
+            Logger.w(
                 TAG,
                 "currentRecognizerSource is null!"
             )
             return
         }
         if (currentRecognizerSource!!.closed) {
-            Log.d(
+            Logger.d(
                 TAG,
                 "Recognizer Source is closed, re-initializing: ${currentRecognizerSource!!.name}"
             )
@@ -196,7 +194,7 @@ class ModelManager(
 
     fun reloadModels() {
         // Sync installed models into modelsOrder (handles newly added/removed API keys)
-        val currentModels = prefs.modelsOrder.get().toMutableList()
+        val currentModels = prefsRepo.getModelsOrder().toMutableList()
         val installedModels = recognizerSourceProviders.installedModels()
         currentModels.removeAll { it !in installedModels }
         for (model in installedModels) {
@@ -204,9 +202,9 @@ class ModelManager(
                 currentModels.add(model)
             }
         }
-        prefs.modelsOrder.set(currentModels)
+        prefsRepo.setModelsOrder(currentModels)
 
-        val newModels = prefs.modelsOrder.get()
+        val newModels = prefsRepo.getModelsOrder()
         if (newModels == recognizerSourceModels)
             return
 

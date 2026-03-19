@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.SettingsActivity
+import com.elishaazaria.sayboard.recognition.auth.AndroidAuthTokenProvider
+import com.elishaazaria.sayboard.recognition.preferences.AndroidPreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.providers.Providers
 import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import dev.patrickgold.jetpref.datastore.model.observeAsState
@@ -37,7 +39,7 @@ import org.burnoutcrew.reorderable.reorderable
 class ModelsSettingsUi(private val activity: SettingsActivity) {
     private val prefs by speakKeysPreferenceModel()
 
-    private val recognizerSourceProviders = Providers(activity)
+    private val recognizerSourceProviders = Providers(AndroidPreferencesRepository(), AndroidAuthTokenProvider())
 
     fun onCreate() {
         reloadModels()

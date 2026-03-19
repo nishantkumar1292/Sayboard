@@ -2,6 +2,7 @@ package com.elishaazaria.sayboard.ime
 
 import android.util.Log
 import com.elishaazaria.sayboard.recognition.ModelManager
+import com.elishaazaria.sayboard.recognition.text.TextProcessor
 import com.elishaazaria.sayboard.speakKeysPreferenceModel
 
 class TextManager(private val ime: IME, private val modelManager: ModelManager) {
@@ -47,21 +48,21 @@ class TextManager(private val ime: IME, private val modelManager: ModelManager) 
             return
         }
 
-        var spacedText = text
-        if (prefs.logicAutoCapitalize.get() && capitalize) {
-            spacedText = spacedText[0].uppercase() + spacedText.substring(1)
-        }
+        val spacedText = TextProcessor.processText(
+            text = text,
+            shouldCapitalize = capitalize,
+            shouldAddSpace = addSpace,
+            autoCapitalizeEnabled = prefs.logicAutoCapitalize.get(),
+            recognizerAddsSpaces = modelManager.currentRecognizerSourceAddSpaces
+        )
 
-        if (modelManager.currentRecognizerSourceAddSpaces && addSpace) {
-            spacedText = " $spacedText"
-        }
         when (mode) {
             Mode.FINAL, Mode.STANDARD -> {
                 // add a space next time. Usually overridden by onUpdateSelection
-                addSpace = addSpaceAfter(
+                addSpace = TextProcessor.addSpaceAfter(
                     spacedText[spacedText.length - 1] // last char
                 )
-                capitalizeAfter(
+                TextProcessor.capitalizeAfter(
                     spacedText
                 )?.let {
                     capitalize = it
@@ -92,34 +93,13 @@ class TextManager(private val ime: IME, private val modelManager: ModelManager) 
         }
         val cs = ime.currentInputConnection.getTextBeforeCursor(3, 0)
         if (cs != null) {
-            addSpace = cs.isNotEmpty() && addSpaceAfter(cs[cs.length - 1])
+            addSpace = cs.isNotEmpty() && TextProcessor.addSpaceAfter(cs[cs.length - 1])
 
-            val value = capitalizeAfter(cs)
+            val value = TextProcessor.capitalizeAfter(cs)
             value?.let {
                 capitalize = it
             }
         }
-    }
-
-    private fun capitalizeAfter(string: CharSequence): Boolean? {
-        for (char in string.reversed()) {
-            if (char.isLetterOrDigit()) {
-                return false
-            }
-            if (char in sentenceTerminator) {
-                return true
-            }
-        }
-        return null
-    }
-
-    private fun addSpaceAfter(char: Char): Boolean = when (char) {
-        '"' -> false
-        '*' -> false
-        ' ' -> false
-        '\n' -> false
-        '\t' -> false
-        else -> true
     }
 
     fun onResume() {
@@ -132,6 +112,5 @@ class TextManager(private val ime: IME, private val modelManager: ModelManager) 
 
     companion object {
         private const val TAG = "TextManager"
-        private val sentenceTerminator = charArrayOf('.', '\n', '!', '?')
     }
 }

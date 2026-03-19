@@ -1,19 +1,17 @@
 package com.elishaazaria.sayboard.recognition.recognizers.providers
 
-import android.content.Context
 import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
+import com.elishaazaria.sayboard.recognition.preferences.PreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.sources.SarvamCloud
-import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import java.util.Locale
 
-class SarvamCloudProvider(private val context: Context) : RecognizerSourceProvider {
-    private val prefs by speakKeysPreferenceModel()
+class SarvamCloudProvider(private val prefs: PreferencesRepository) : RecognizerSourceProvider {
 
     override fun getInstalledModels(): List<InstalledModelReference> {
         // Only show Sarvam option if API key is configured
-        val apiKey = prefs.sarvamApiKey.get()
+        val apiKey = prefs.getSarvamApiKey()
         if (apiKey.isEmpty()) {
             return emptyList()
         }
@@ -31,14 +29,14 @@ class SarvamCloudProvider(private val context: Context) : RecognizerSourceProvid
     override fun recognizerSourceForModel(localModel: InstalledModelReference): RecognizerSource? {
         if (localModel.type != ModelType.SarvamCloud) return null
 
-        val apiKey = prefs.sarvamApiKey.get()
+        val apiKey = prefs.getSarvamApiKey()
         if (apiKey.isEmpty()) return null
 
         // Sarvam uses en-IN locale for Hinglish display
         val locale = Locale("en", "IN")
 
-        val mode = normalizeSarvamMode(prefs.sarvamMode.get())
-        val languageCode = prefs.sarvamLanguage.get()
+        val mode = normalizeSarvamMode(prefs.getSarvamMode())
+        val languageCode = prefs.getSarvamLanguage()
 
         return SarvamCloud(apiKey, locale, mode, languageCode)
     }

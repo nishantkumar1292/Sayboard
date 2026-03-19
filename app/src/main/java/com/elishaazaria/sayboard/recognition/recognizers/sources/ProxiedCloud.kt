@@ -2,15 +2,15 @@ package com.elishaazaria.sayboard.recognition.recognizers.sources
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.auth.AuthManager
+import com.elishaazaria.sayboard.recognition.logging.Logger
 import com.elishaazaria.sayboard.recognition.recognizers.Recognizer
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
 import java.util.concurrent.Executor
@@ -30,8 +30,8 @@ class ProxiedCloud(
         private const val TAG = "ProxiedCloud"
     }
 
-    private val stateMLD = MutableLiveData(RecognizerState.NONE)
-    override val stateLD: LiveData<RecognizerState> get() = stateMLD
+    private val _stateFlow = MutableStateFlow(RecognizerState.NONE)
+    override val stateFlow: StateFlow<RecognizerState> = _stateFlow.asStateFlow()
 
     private var myRecognizer: ProxiedCloudRecognizer? = null
 
@@ -44,27 +44,27 @@ class ProxiedCloud(
 
     override val closed: Boolean get() = myRecognizer == null
 
-    override fun initialize(executor: Executor, onLoaded: Observer<RecognizerSource?>) {
-        Log.d(TAG, "initialize() for provider=$provider")
-        stateMLD.postValue(RecognizerState.LOADING)
+    override fun initialize(executor: Executor, onLoaded: (RecognizerSource?) -> Unit) {
+        Logger.d(TAG, "initialize() for provider=$provider")
+        _stateFlow.value = RecognizerState.LOADING
         val handler = Handler(Looper.getMainLooper())
 
         executor.execute {
             // Fetch a fresh ID token on the background thread (safe to block here)
             val idToken = runBlocking { AuthManager.getIdToken() }
-            Log.d(TAG, "idToken valid: ${!idToken.isNullOrEmpty()}")
+            Logger.d(TAG, "idToken valid: ${!idToken.isNullOrEmpty()}")
 
             handler.post {
                 if (!idToken.isNullOrEmpty()) {
                     myRecognizer = ProxiedCloudRecognizer(
                         idToken, provider, displayLocale, providerParams, transliterateToRoman
                     )
-                    stateMLD.postValue(RecognizerState.READY)
+                    _stateFlow.value = RecognizerState.READY
                 } else {
-                    Log.e(TAG, "No valid ID token!")
-                    stateMLD.postValue(RecognizerState.ERROR)
+                    Logger.e(TAG, "No valid ID token!")
+                    _stateFlow.value = RecognizerState.ERROR
                 }
-                onLoaded.onChanged(this)
+                onLoaded(this)
             }
         }
     }

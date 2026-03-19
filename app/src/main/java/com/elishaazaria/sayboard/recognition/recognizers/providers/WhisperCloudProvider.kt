@@ -1,19 +1,17 @@
 package com.elishaazaria.sayboard.recognition.recognizers.providers
 
-import android.content.Context
 import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
+import com.elishaazaria.sayboard.recognition.preferences.PreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.sources.WhisperCloud
-import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import java.util.Locale
 
-class WhisperCloudProvider(private val context: Context) : RecognizerSourceProvider {
-    private val prefs by speakKeysPreferenceModel()
+class WhisperCloudProvider(private val prefs: PreferencesRepository) : RecognizerSourceProvider {
 
     override fun getInstalledModels(): List<InstalledModelReference> {
         // Only show cloud option if API key is configured
-        val apiKey = prefs.openaiApiKey.get()
+        val apiKey = prefs.getOpenaiApiKey()
         if (apiKey.isEmpty()) {
             return emptyList()
         }
@@ -31,11 +29,11 @@ class WhisperCloudProvider(private val context: Context) : RecognizerSourceProvi
     override fun recognizerSourceForModel(localModel: InstalledModelReference): RecognizerSource? {
         if (localModel.type != ModelType.WhisperCloud) return null
 
-        val apiKey = prefs.openaiApiKey.get()
+        val apiKey = prefs.getOpenaiApiKey()
         if (apiKey.isEmpty()) return null
 
         // Get preferred language from settings
-        val languageCode = prefs.whisperLanguage.get()
+        val languageCode = prefs.getWhisperLanguage()
         val locale = if (languageCode.isNotEmpty()) {
             Locale(languageCode)
         } else {
@@ -43,10 +41,10 @@ class WhisperCloudProvider(private val context: Context) : RecognizerSourceProvi
         }
 
         // Get prompt for guiding transcription style (e.g., Hinglish)
-        val prompt = prefs.whisperPrompt.get()
+        val prompt = prefs.getWhisperPrompt()
 
         // Get transliteration preference
-        val transliterateToRoman = prefs.whisperTransliterateToRoman.get()
+        val transliterateToRoman = prefs.getWhisperTransliterateToRoman()
 
         return WhisperCloud(apiKey, locale, prompt, transliterateToRoman)
     }

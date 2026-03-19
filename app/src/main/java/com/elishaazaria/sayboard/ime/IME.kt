@@ -29,8 +29,13 @@ import androidx.core.app.ActivityCompat
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.data.KeepScreenAwakeMode
 import com.elishaazaria.sayboard.recognition.ModelManager
+import com.elishaazaria.sayboard.recognition.auth.AndroidAuthTokenProvider
+import com.elishaazaria.sayboard.recognition.preferences.AndroidPreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.speakKeysPreferenceModel
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 class IME : InputMethodService(), ModelManager.Listener {
     private val prefs by speakKeysPreferenceModel()
@@ -45,6 +50,7 @@ class IME : InputMethodService(), ModelManager.Listener {
     private lateinit var textManager: TextManager
 
     private var currentRecognizerSource: RecognizerSource? = null
+    private var stateFlowJob: Job? = null
 
 
     public var enterAction = EditorInfo.IME_ACTION_UNSPECIFIED
@@ -86,7 +92,7 @@ class IME : InputMethodService(), ModelManager.Listener {
 
         checkMicrophonePermission()
 
-        modelManager = ModelManager(this, this)
+        modelManager = ModelManager(this, this, AndroidPreferencesRepository(), AndroidAuthTokenProvider())
         modelManager.initializeFirstLocale(false)
 
         textManager = TextManager(this, modelManager)
@@ -310,6 +316,7 @@ class IME : InputMethodService(), ModelManager.Listener {
         micProcessing = false
         deferredResults.clear()
         cancelHoldTimers()
+        stateFlowJob?.cancel()
         lifecycleOwner.onDestroy()
         modelManager.onDestroy()
     }
@@ -365,7 +372,7 @@ class IME : InputMethodService(), ModelManager.Listener {
             cancelHoldTimers()
         }
         if (state == ModelManager.State.STATE_STOPPED) {
-            currentRecognizerSource?.stateLD?.removeObserver(viewManager)
+            stateFlowJob?.cancel()
             viewManager.stateLD.postValue(
                 if (micProcessing) ViewManager.STATE_PROCESSING else ViewManager.STATE_READY
             )
@@ -412,9 +419,13 @@ class IME : InputMethodService(), ModelManager.Listener {
     }
 
     override fun onRecognizerSource(source: RecognizerSource) {
-        currentRecognizerSource?.stateLD?.removeObserver(viewManager)
+        stateFlowJob?.cancel()
         currentRecognizerSource = source
-        source.stateLD.observe(lifecycleOwner, viewManager)
+        stateFlowJob = lifecycleOwner.lifecycleScope.launch {
+            source.stateFlow.collect { state ->
+                viewManager.onRecognizerStateChanged(state)
+            }
+        }
     }
 
     override fun onTimeout() {

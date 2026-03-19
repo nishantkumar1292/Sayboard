@@ -1,6 +1,7 @@
 package com.elishaazaria.sayboard.recognition.recognizers.sources
 
-import android.util.Log
+import com.elishaazaria.sayboard.recognition.audio.WavEncoder
+import com.elishaazaria.sayboard.recognition.logging.Logger
 import com.elishaazaria.sayboard.recognition.recognizers.Recognizer
 import com.elishaazaria.sayboard.utils.DevanagariTransliterator
 import okhttp3.MediaType.Companion.toMediaType
@@ -69,7 +70,7 @@ class WhisperCloudRecognizer(
     override fun getFinalResult(): String {
         if (bufferPosition == 0) return ""
 
-        Log.d(TAG, "Transcribing ${bufferPosition} samples (${bufferPosition / sampleRate} seconds)")
+        Logger.d(TAG, "Transcribing ${bufferPosition} samples (${bufferPosition / sampleRate} seconds)")
         transcribe()
         val result = lastResult
         lastResult = ""
@@ -78,12 +79,12 @@ class WhisperCloudRecognizer(
 
     private fun transcribe() {
         if (apiKey.isEmpty()) {
-            Log.e(TAG, "No API key configured")
+            Logger.e(TAG, "No API key configured")
             return
         }
 
         val wavBytes = createWavBytes()
-        Log.d(TAG, "Created WAV: ${wavBytes.size} bytes")
+        Logger.d(TAG, "Created WAV: ${wavBytes.size} bytes")
 
         try {
             val requestBody = MultipartBody.Builder()
@@ -112,7 +113,7 @@ class WhisperCloudRecognizer(
                 .post(requestBody)
                 .build()
 
-            Log.d(TAG, "Sending request to OpenAI...")
+            Logger.d(TAG, "Sending request to OpenAI...")
             val response = client.newCall(request).execute()
 
             if (response.isSuccessful) {
@@ -129,60 +130,15 @@ class WhisperCloudRecognizer(
                     lastResult = removeSpaceForLocale(text)
                 }
             } else {
-                Log.e(TAG, "API error: ${response.code}")
+                Logger.e(TAG, "API error: ${response.code}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Transcription failed", e)
+            Logger.e(TAG, "Transcription failed", e)
         }
 
         bufferPosition = 0
     }
 
-    private fun createWavBytes(): ByteArray {
-        val numSamples = bufferPosition
-        val byteRate = sampleRate.toInt() * 2  // 16-bit mono
-        val dataSize = numSamples * 2
-        val fileSize = 36 + dataSize
-
-        val wav = ByteArray(44 + dataSize)
-        var offset = 0
-
-        // RIFF header
-        "RIFF".toByteArray().copyInto(wav, offset); offset += 4
-        writeInt(wav, offset, fileSize); offset += 4
-        "WAVE".toByteArray().copyInto(wav, offset); offset += 4
-
-        // fmt chunk
-        "fmt ".toByteArray().copyInto(wav, offset); offset += 4
-        writeInt(wav, offset, 16); offset += 4  // chunk size
-        writeShort(wav, offset, 1); offset += 2  // PCM format
-        writeShort(wav, offset, 1); offset += 2  // mono
-        writeInt(wav, offset, sampleRate.toInt()); offset += 4
-        writeInt(wav, offset, byteRate); offset += 4
-        writeShort(wav, offset, 2); offset += 2  // block align
-        writeShort(wav, offset, 16); offset += 2  // bits per sample
-
-        // data chunk
-        "data".toByteArray().copyInto(wav, offset); offset += 4
-        writeInt(wav, offset, dataSize); offset += 4
-
-        // audio data
-        for (i in 0 until numSamples) {
-            writeShort(wav, offset, audioBuffer[i].toInt()); offset += 2
-        }
-
-        return wav
-    }
-
-    private fun writeInt(arr: ByteArray, offset: Int, value: Int) {
-        arr[offset] = (value and 0xff).toByte()
-        arr[offset + 1] = ((value shr 8) and 0xff).toByte()
-        arr[offset + 2] = ((value shr 16) and 0xff).toByte()
-        arr[offset + 3] = ((value shr 24) and 0xff).toByte()
-    }
-
-    private fun writeShort(arr: ByteArray, offset: Int, value: Int) {
-        arr[offset] = (value and 0xff).toByte()
-        arr[offset + 1] = ((value shr 8) and 0xff).toByte()
-    }
+    private fun createWavBytes(): ByteArray =
+        WavEncoder.createWavBytes(audioBuffer, bufferPosition, sampleRate.toInt())
 }
