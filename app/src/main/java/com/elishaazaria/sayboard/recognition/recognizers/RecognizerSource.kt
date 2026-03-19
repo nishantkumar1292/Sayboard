@@ -1,16 +1,15 @@
 package com.elishaazaria.sayboard.recognition.recognizers
 
 import androidx.annotation.StringRes
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.Observer
+import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 import java.util.concurrent.Executor
 
 interface RecognizerSource {
-    fun initialize(executor: Executor, onLoaded: Observer<RecognizerSource?>)
+    fun initialize(executor: Executor, onLoaded: (RecognizerSource?) -> Unit)
     val recognizer: Recognizer
     fun close(freeRAM: Boolean)
-    val stateLD: LiveData<RecognizerState>
+    val stateFlow: StateFlow<RecognizerState>
 
     val addSpaces: Boolean
 

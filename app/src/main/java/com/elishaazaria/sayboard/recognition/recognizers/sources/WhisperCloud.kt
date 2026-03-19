@@ -2,14 +2,14 @@ package com.elishaazaria.sayboard.recognition.recognizers.sources
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import com.elishaazaria.sayboard.R
+import com.elishaazaria.sayboard.recognition.logging.Logger
 import com.elishaazaria.sayboard.recognition.recognizers.Recognizer
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 import java.util.concurrent.Executor
 
@@ -24,8 +24,8 @@ class WhisperCloud(
         private const val TAG = "WhisperCloud"
     }
 
-    private val stateMLD = MutableLiveData(RecognizerState.NONE)
-    override val stateLD: LiveData<RecognizerState> get() = stateMLD
+    private val _stateFlow = MutableStateFlow(RecognizerState.NONE)
+    override val stateFlow: StateFlow<RecognizerState> = _stateFlow.asStateFlow()
 
     private var myRecognizer: WhisperCloudRecognizer? = null
 
@@ -38,27 +38,27 @@ class WhisperCloud(
 
     override val closed: Boolean get() = myRecognizer == null
 
-    override fun initialize(executor: Executor, onLoaded: Observer<RecognizerSource?>) {
-        Log.d(TAG, "initialize() called, current closed state: $closed")
-        stateMLD.postValue(RecognizerState.LOADING)
+    override fun initialize(executor: Executor, onLoaded: (RecognizerSource?) -> Unit) {
+        Logger.d(TAG, "initialize() called, current closed state: $closed")
+        _stateFlow.value = RecognizerState.LOADING
         val handler = Handler(Looper.getMainLooper())
 
         executor.execute {
             // For cloud, there's no model to load - just validate API key
             val isValidKey = apiKey.isNotEmpty()
-            Log.d(TAG, "isValidKey: $isValidKey")
+            Logger.d(TAG, "isValidKey: $isValidKey")
 
             handler.post {
                 if (isValidKey) {
-                    Log.d(TAG, "Creating WhisperCloudRecognizer with prompt: $prompt, transliterate: $transliterateToRoman")
+                    Logger.d(TAG, "Creating WhisperCloudRecognizer with prompt: $prompt, transliterate: $transliterateToRoman")
                     myRecognizer = WhisperCloudRecognizer(apiKey, displayLocale, prompt, transliterateToRoman)
-                    stateMLD.postValue(RecognizerState.READY)
-                    Log.d(TAG, "Recognizer created, closed state now: $closed")
+                    _stateFlow.value = RecognizerState.READY
+                    Logger.d(TAG, "Recognizer created, closed state now: $closed")
                 } else {
-                    Log.e(TAG, "Invalid API key!")
-                    stateMLD.postValue(RecognizerState.ERROR)
+                    Logger.e(TAG, "Invalid API key!")
+                    _stateFlow.value = RecognizerState.ERROR
                 }
-                onLoaded.onChanged(this)
+                onLoaded(this)
             }
         }
     }

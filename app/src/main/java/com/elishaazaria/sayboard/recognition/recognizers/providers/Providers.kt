@@ -1,11 +1,12 @@
 package com.elishaazaria.sayboard.recognition.recognizers.providers
 
-import android.content.Context
 import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
+import com.elishaazaria.sayboard.recognition.auth.AuthTokenProvider
+import com.elishaazaria.sayboard.recognition.preferences.PreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 
-class Providers(context: Context) {
+class Providers(prefs: PreferencesRepository, authTokenProvider: AuthTokenProvider) {
     private val whisperCloudProvider: WhisperCloudProvider
     private val sarvamCloudProvider: SarvamCloudProvider
     private val proxiedCloudProvider: ProxiedCloudProvider
@@ -13,11 +14,11 @@ class Providers(context: Context) {
 
     init {
         val providersM = mutableListOf<RecognizerSourceProvider>()
-        sarvamCloudProvider = SarvamCloudProvider(context)
+        sarvamCloudProvider = SarvamCloudProvider(prefs)
         providersM.add(sarvamCloudProvider)
-        whisperCloudProvider = WhisperCloudProvider(context)
+        whisperCloudProvider = WhisperCloudProvider(prefs)
         providersM.add(whisperCloudProvider)
-        proxiedCloudProvider = ProxiedCloudProvider(context)
+        proxiedCloudProvider = ProxiedCloudProvider(prefs, authTokenProvider)
         providersM.add(proxiedCloudProvider)
         providers = providersM
     }

@@ -1,17 +1,18 @@
 package com.elishaazaria.sayboard.recognition.recognizers.providers
 
-import android.content.Context
-import android.util.Log
-import com.elishaazaria.sayboard.auth.AuthManager
 import com.elishaazaria.sayboard.data.InstalledModelReference
 import com.elishaazaria.sayboard.data.ModelType
+import com.elishaazaria.sayboard.recognition.auth.AuthTokenProvider
+import com.elishaazaria.sayboard.recognition.logging.Logger
+import com.elishaazaria.sayboard.recognition.preferences.PreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
 import com.elishaazaria.sayboard.recognition.recognizers.sources.ProxiedCloud
-import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import java.util.Locale
 
-class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvider {
-    private val prefs by speakKeysPreferenceModel()
+class ProxiedCloudProvider(
+    private val prefs: PreferencesRepository,
+    private val authTokenProvider: AuthTokenProvider
+) : RecognizerSourceProvider {
 
     companion object {
         private const val TAG = "ProxiedCloudProvider"
@@ -20,11 +21,11 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
     override fun getInstalledModels(): List<InstalledModelReference> {
         // Only gate on sign-in status (local/reliable). Access is enforced server-side
         // by the proxy backend, avoiding stale-cache lockout issues.
-        if (!AuthManager.isSignedIn) {
-            Log.d(TAG, "getInstalledModels: not signed in, skipping proxied models")
+        if (!authTokenProvider.isSignedIn) {
+            Logger.d(TAG, "getInstalledModels: not signed in, skipping proxied models")
             return emptyList()
         }
-        Log.d(TAG, "getInstalledModels: signed in as ${AuthManager.currentUser?.email}, returning proxied models")
+        Logger.d(TAG, "getInstalledModels: signed in as ${authTokenProvider.userEmail}, returning proxied models")
 
         return listOf(
             InstalledModelReference(
@@ -40,14 +41,14 @@ class ProxiedCloudProvider(private val context: Context) : RecognizerSourceProvi
             return null
         }
 
-        if (!AuthManager.isSignedIn) return null
+        if (!authTokenProvider.isSignedIn) return null
 
         // ID token is fetched lazily in ProxiedCloud.initialize() on the background thread
         return when (localModel.type) {
             ModelType.ProxiedSarvamCloud -> {
                 val locale = Locale("en", "IN")
-                val mode = normalizeSarvamMode(prefs.sarvamMode.get())
-                val languageCode = prefs.sarvamLanguage.get()
+                val mode = normalizeSarvamMode(prefs.getSarvamMode())
+                val languageCode = prefs.getSarvamLanguage()
 
                 val params = mapOf(
                     "model" to "saaras:v3",

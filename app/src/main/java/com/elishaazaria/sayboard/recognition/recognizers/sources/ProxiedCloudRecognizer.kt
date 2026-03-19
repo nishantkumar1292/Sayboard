@@ -1,6 +1,7 @@
 package com.elishaazaria.sayboard.recognition.recognizers.sources
 
-import android.util.Log
+import com.elishaazaria.sayboard.recognition.audio.WavEncoder
+import com.elishaazaria.sayboard.recognition.logging.Logger
 import com.elishaazaria.sayboard.recognition.recognizers.Recognizer
 import com.elishaazaria.sayboard.utils.DevanagariTransliterator
 import okhttp3.MediaType.Companion.toMediaType
@@ -73,7 +74,7 @@ class ProxiedCloudRecognizer(
     override fun getFinalResult(): String {
         if (bufferPosition == 0) return ""
 
-        Log.d(TAG, "Transcribing ${bufferPosition} samples via proxy ($provider)")
+        Logger.d(TAG, "Transcribing ${bufferPosition} samples via proxy ($provider)")
         try {
             transcribe()
             lastError?.let { throw it }
@@ -87,7 +88,7 @@ class ProxiedCloudRecognizer(
 
     private fun transcribe() {
         val wavBytes = createWavBytes()
-        Log.d(TAG, "Created WAV: ${wavBytes.size} bytes")
+        Logger.d(TAG, "Created WAV: ${wavBytes.size} bytes")
         lastError = null
 
         for (attempt in 0..MAX_RETRIES) {
@@ -114,7 +115,7 @@ class ProxiedCloudRecognizer(
                     .post(bodyBuilder.build())
                     .build()
 
-                Log.d(TAG, "Sending request to proxy (attempt ${attempt + 1})...")
+                Logger.d(TAG, "Sending request to proxy (attempt ${attempt + 1})...")
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string().orEmpty()
 
@@ -136,13 +137,13 @@ class ProxiedCloudRecognizer(
                         }
                         response.code == 402 -> {
                             val message = extractErrorMessage(responseBody)
-                            Log.w(TAG, "Access denied: ${response.code} - $message")
+                            Logger.w(TAG, "Access denied: ${response.code} - $message")
                             lastError = IOException("Proxy access denied: $message")
                             return
                         }
                         else -> {
                             val message = extractErrorMessage(responseBody)
-                            Log.e(
+                            Logger.e(
                                 TAG,
                                 "Proxy error: ${response.code} - $message (attempt ${attempt + 1}/${MAX_RETRIES + 1})"
                             )
@@ -151,7 +152,7 @@ class ProxiedCloudRecognizer(
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Transcription via proxy failed (attempt ${attempt + 1}/${MAX_RETRIES + 1})", e)
+                Logger.e(TAG, "Transcription via proxy failed (attempt ${attempt + 1}/${MAX_RETRIES + 1})", e)
                 lastError = if (e is IOException) e else IOException("Proxy transcription failed", e)
                 if (attempt < MAX_RETRIES) {
                     Thread.sleep(RETRY_DELAY_MS)
@@ -159,7 +160,7 @@ class ProxiedCloudRecognizer(
             }
         }
 
-        Log.e(TAG, "All ${MAX_RETRIES + 1} transcription attempts failed", lastError)
+        Logger.e(TAG, "All ${MAX_RETRIES + 1} transcription attempts failed", lastError)
     }
 
     private fun extractErrorMessage(responseBody: String): String {
@@ -174,47 +175,6 @@ class ProxiedCloudRecognizer(
         }
     }
 
-    private fun createWavBytes(): ByteArray {
-        val numSamples = bufferPosition
-        val byteRate = sampleRate.toInt() * 2
-        val dataSize = numSamples * 2
-        val fileSize = 36 + dataSize
-
-        val wav = ByteArray(44 + dataSize)
-        var offset = 0
-
-        "RIFF".toByteArray().copyInto(wav, offset); offset += 4
-        writeInt(wav, offset, fileSize); offset += 4
-        "WAVE".toByteArray().copyInto(wav, offset); offset += 4
-
-        "fmt ".toByteArray().copyInto(wav, offset); offset += 4
-        writeInt(wav, offset, 16); offset += 4
-        writeShort(wav, offset, 1); offset += 2
-        writeShort(wav, offset, 1); offset += 2
-        writeInt(wav, offset, sampleRate.toInt()); offset += 4
-        writeInt(wav, offset, byteRate); offset += 4
-        writeShort(wav, offset, 2); offset += 2
-        writeShort(wav, offset, 16); offset += 2
-
-        "data".toByteArray().copyInto(wav, offset); offset += 4
-        writeInt(wav, offset, dataSize); offset += 4
-
-        for (i in 0 until numSamples) {
-            writeShort(wav, offset, audioBuffer[i].toInt()); offset += 2
-        }
-
-        return wav
-    }
-
-    private fun writeInt(arr: ByteArray, offset: Int, value: Int) {
-        arr[offset] = (value and 0xff).toByte()
-        arr[offset + 1] = ((value shr 8) and 0xff).toByte()
-        arr[offset + 2] = ((value shr 16) and 0xff).toByte()
-        arr[offset + 3] = ((value shr 24) and 0xff).toByte()
-    }
-
-    private fun writeShort(arr: ByteArray, offset: Int, value: Int) {
-        arr[offset] = (value and 0xff).toByte()
-        arr[offset + 1] = ((value shr 8) and 0xff).toByte()
-    }
+    private fun createWavBytes(): ByteArray =
+        WavEncoder.createWavBytes(audioBuffer, bufferPosition, sampleRate.toInt())
 }
