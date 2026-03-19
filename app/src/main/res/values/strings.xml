@@ -172,7 +172,7 @@
     <string name="account_user">User</string>
     <string name="account_sign_out">Sign Out</string>
     <string name="account_developer_hint">Developer? Go to the API tab to use your own API keys instead.</string>
-    <string name="error_proxy_auth">Authentication failed. Please sign in again.</string>
+    <string name="error_proxy_auth">Session expired. Retrying…</string>
     <string name="profile_other_settings">OTHER SETTINGS</string>
     <string name="profile_advanced_settings">Advanced Settings</string>
 

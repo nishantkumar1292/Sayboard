@@ -32,6 +32,7 @@ import com.elishaazaria.sayboard.recognition.ModelManager
 import com.elishaazaria.sayboard.recognition.auth.AndroidAuthTokenProvider
 import com.elishaazaria.sayboard.recognition.preferences.AndroidPreferencesRepository
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerSource
+import com.elishaazaria.sayboard.recognition.recognizers.RecognizerState
 import com.elishaazaria.sayboard.speakKeysPreferenceModel
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
@@ -317,6 +318,7 @@ class IME : InputMethodService(), ModelManager.Listener {
         deferredResults.clear()
         cancelHoldTimers()
         stateFlowJob?.cancel()
+        authRetryJob?.cancel()
         lifecycleOwner.onDestroy()
         modelManager.onDestroy()
     }
@@ -420,10 +422,28 @@ class IME : InputMethodService(), ModelManager.Listener {
 
     override fun onRecognizerSource(source: RecognizerSource) {
         stateFlowJob?.cancel()
+        authRetryJob?.cancel()
         currentRecognizerSource = source
         stateFlowJob = lifecycleOwner.lifecycleScope.launch {
             source.stateFlow.collect { state ->
                 viewManager.onRecognizerStateChanged(state)
+                if (state == RecognizerState.ERROR) {
+                    viewManager.errorMessageLD.postValue(source.errorMessage)
+                    scheduleAuthRetry()
+                }
+            }
+        }
+    }
+
+    private var authRetryJob: Job? = null
+
+    private fun scheduleAuthRetry() {
+        authRetryJob?.cancel()
+        authRetryJob = lifecycleOwner.lifecycleScope.launch {
+            kotlinx.coroutines.delay(5000)
+            if (viewManager.stateLD.value == ViewManager.STATE_ERROR && !micPressed && !micProcessing) {
+                Log.d("IME", "Auto-retrying initialization after auth error")
+                modelManager.initializeFirstLocale(false)
             }
         }
     }
