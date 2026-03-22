@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.Box
@@ -37,6 +39,11 @@ import com.elishaazaria.sayboard.data.ModelType
 import com.elishaazaria.sayboard.theme.AppTheme
 import com.elishaazaria.sayboard.theme.DarkSurface
 import com.elishaazaria.sayboard.theme.Primary
+import com.elishaazaria.sayboard.theme.SpaceAccentCyan
+import com.elishaazaria.sayboard.theme.SpaceBackground
+import com.elishaazaria.sayboard.theme.SpacePanelBottom
+import com.elishaazaria.sayboard.theme.SpaceTextPrimary
+import com.elishaazaria.sayboard.theme.SpaceTextSecondary
 import com.elishaazaria.sayboard.ui.AdvancedSettingsActivity
 import com.elishaazaria.sayboard.ui.GrantPermissionUi
 import com.elishaazaria.sayboard.ui.ModelsSettingsUi
@@ -57,6 +64,11 @@ class SettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
 
         checkPermissions()
 
@@ -108,44 +120,46 @@ class SettingsActivity : ComponentActivity() {
         )
         var selectedIndex by remember { mutableIntStateOf(0) }
 
-        Scaffold(bottomBar = {
-            BottomNavigation(
-                modifier = Modifier.navigationBarsPadding(),
-                backgroundColor = DarkSurface,
-                contentColor = MaterialTheme.colors.onSurface
-            ) {
-                tabs.forEachIndexed { index, tab ->
-                    BottomNavigationItem(
-                        selected = index == selectedIndex,
-                        onClick = { selectedIndex = index },
-                        selectedContentColor = Primary,
-                        unselectedContentColor = Color.Gray,
-                        icon = {
-                            when (index) {
-                                0 -> Icon(
-                                    imageVector = Icons.Default.Mic,
-                                    contentDescription = null
-                                )
-                                1 -> Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = null
-                                )
-                                2 -> Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null
-                                )
-                            }
-                        },
-                        label = { Text(text = tab) }
-                    )
+        Scaffold(
+            backgroundColor = SpaceBackground,
+            bottomBar = {
+                BottomNavigation(
+                    modifier = Modifier.navigationBarsPadding(),
+                    backgroundColor = SpacePanelBottom,
+                    contentColor = SpaceTextPrimary,
+                    elevation = 0.dp
+                ) {
+                    tabs.forEachIndexed { index, tab ->
+                        BottomNavigationItem(
+                            selected = index == selectedIndex,
+                            onClick = { selectedIndex = index },
+                            selectedContentColor = SpaceAccentCyan,
+                            unselectedContentColor = SpaceTextSecondary,
+                            icon = {
+                                when (index) {
+                                    0 -> Icon(
+                                        imageVector = Icons.Default.Mic,
+                                        contentDescription = null
+                                    )
+                                    1 -> Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = null
+                                    )
+                                    2 -> Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            label = { Text(text = tab) }
+                        )
+                    }
                 }
             }
-        }) {
+        ) {
             Box(
                 modifier = Modifier
                     .padding(it)
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 val isSignedIn = signedIn.observeAsState(AuthManager.isSignedIn)
                 val selectedEngine by prefs.selectedEngine.observeAsState()

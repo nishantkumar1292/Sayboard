@@ -5,14 +5,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.media.AudioDeviceInfo
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -23,8 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,11 +27,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.darkColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
@@ -64,14 +52,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -84,11 +71,23 @@ import com.elishaazaria.sayboard.Constants
 import com.elishaazaria.sayboard.R
 import com.elishaazaria.sayboard.recognition.recognizers.RecognizerState
 import com.elishaazaria.sayboard.speakKeysPreferenceModel
-import com.elishaazaria.sayboard.theme.DarkSurface
-import com.elishaazaria.sayboard.theme.DarkSurfaceVariant
-import com.elishaazaria.sayboard.theme.ErrorRed
-import com.elishaazaria.sayboard.theme.ListeningBlue
 import com.elishaazaria.sayboard.theme.Shapes
+import com.elishaazaria.sayboard.theme.SpaceAccentBlue
+import com.elishaazaria.sayboard.theme.SpaceAccentCyan
+import com.elishaazaria.sayboard.theme.SpaceBackdrop
+import com.elishaazaria.sayboard.theme.SpaceControlIcon
+import com.elishaazaria.sayboard.theme.SpaceErrorRed
+import com.elishaazaria.sayboard.theme.SpaceMicVisual
+import com.elishaazaria.sayboard.theme.SpaceMicVisualVariant
+import com.elishaazaria.sayboard.theme.SpaceOutline
+import com.elishaazaria.sayboard.theme.SpaceOutlineStrong
+import com.elishaazaria.sayboard.theme.SpacePanel
+import com.elishaazaria.sayboard.theme.SpaceTextPrimary
+import com.elishaazaria.sayboard.theme.SpaceTextSecondary
+import com.elishaazaria.sayboard.theme.SpaceWarningAmber
+import com.elishaazaria.sayboard.theme.SpaceWordmark
+import com.elishaazaria.sayboard.theme.spaceMaterialColors
+import com.elishaazaria.sayboard.theme.spacePanelBrush
 import com.elishaazaria.sayboard.utils.AudioDevices
 import com.elishaazaria.sayboard.utils.describe
 import com.elishaazaria.sayboard.utils.toIcon
@@ -144,26 +143,11 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime) {
         }
 
         IMETheme(prefs) {
-            val primary = MaterialTheme.colors.primary
-            val bg = MaterialTheme.colors.background
-            val onBg = MaterialTheme.colors.onBackground
-
-            val stateColor by animateColorAsState(
-                targetValue = when (state) {
-                    STATE_LISTENING -> ListeningBlue
-                    STATE_LIMIT_WARNING, STATE_ERROR -> ErrorRed
-                    else -> primary
-                },
-                animationSpec = tween(300),
-                label = "stateColor"
-            )
-
-            Box(
+            SpaceBackdrop(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(height)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(bg)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             ) {
                 when (keyboardMode) {
                     KeyboardMode.VOICE -> {
@@ -175,14 +159,12 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime) {
                             SymbolsBar(
                                 symbols = VOICE_SYMBOLS,
                                 enabled = controlsEnabled,
-                                onBg = onBg,
                                 onSymbolPress = { listener?.buttonClicked(it) }
                             )
 
                             MicArea(
                                 state = state,
                                 errorMessage = errorMessage,
-                                stateColor = stateColor,
                                 onMicPressStart = { listener?.micPressStart() },
                                 onMicPressEnd = { listener?.micPressEnd() },
                                 onErrorClick = { listener?.settingsClicked() }
@@ -190,7 +172,6 @@ class ViewManager(private val ime: Context) : AbstractComposeView(ime) {
 
                             BottomBar(
                                 enabled = controlsEnabled,
-                                onBg = onBg,
                                 actionLabel = enterActionLabel,
                                 actionVisual = enterActionVisual,
                                 onToggleMode = { listener?.toggleKeyboardMode() },
@@ -293,15 +274,15 @@ private fun DragHandle(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(top = 8.dp, bottom = 4.dp),
+            .padding(top = 10.dp, bottom = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .width(40.dp)
+                .width(52.dp)
                 .height(4.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.38f))
+                .background(SpaceOutlineStrong.copy(alpha = 0.82f))
         )
     }
 }
@@ -310,30 +291,29 @@ private fun DragHandle(onClick: () -> Unit) {
 private fun SymbolsBar(
     symbols: List<String>,
     enabled: Boolean,
-    onBg: Color,
     onSymbolPress: (String) -> Unit
 ) {
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         items(symbols) { symbol ->
-            Box(
-                contentAlignment = Alignment.Center,
+            SpacePanel(
                 modifier = Modifier
-                    .width(44.dp)
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        if (enabled) DarkSurfaceVariant else DarkSurfaceVariant.copy(alpha = 0.45f)
-                    )
+                    .width(46.dp)
+                    .height(40.dp)
                     .clickable(enabled = enabled) { onSymbolPress(symbol) }
+                    .alpha(if (enabled) 1f else 0.5f),
+                shape = RoundedCornerShape(20.dp),
+                borderColor = if (enabled) SpaceOutlineStrong.copy(alpha = 0.8f) else SpaceOutline.copy(alpha = 0.24f),
+                backgroundBrush = spacePanelBrush(alpha = if (enabled) 0.92f else 0.56f)
             ) {
                 Text(
                     text = symbol,
-                    color = onBg.copy(alpha = if (enabled) 1f else 0.35f),
+                    color = SpaceTextPrimary.copy(alpha = if (enabled) 0.96f else 0.42f),
                     fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
                 )
             }
@@ -345,39 +325,18 @@ private fun SymbolsBar(
 private fun androidx.compose.foundation.layout.ColumnScope.MicArea(
     state: Int,
     errorMessage: String,
-    stateColor: Color,
     onMicPressStart: () -> Unit,
     onMicPressEnd: () -> Unit,
     onErrorClick: () -> Unit
 ) {
-    val isFilledState =
-        state == ViewManager.STATE_LISTENING ||
-            state == ViewManager.STATE_LIMIT_WARNING ||
-            state == ViewManager.STATE_ERROR
-    val shouldPulse =
-        state == ViewManager.STATE_LISTENING || state == ViewManager.STATE_LIMIT_WARNING
-
-    val pulseScale = if (shouldPulse) {
-        val infiniteTransition = rememberInfiniteTransition(label = "micPulse")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.08f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(800),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulseScale"
-        )
-        scale
-    } else {
-        1f
-    }
-
-    val icon = when (state) {
-        ViewManager.STATE_LOADING, ViewManager.STATE_PROCESSING -> Icons.Default.Settings
-        ViewManager.STATE_INITIAL, ViewManager.STATE_READY, ViewManager.STATE_PAUSED -> Icons.Default.MicNone
-        ViewManager.STATE_LISTENING, ViewManager.STATE_LIMIT_WARNING -> Icons.Default.Mic
-        else -> Icons.Default.MicOff
+    val visualVariant = micVisualVariant(state)
+    val icon = micIcon(state)
+    val statusColor = when (visualVariant) {
+        SpaceMicVisualVariant.IDLE -> SpaceTextSecondary
+        SpaceMicVisualVariant.LISTENING -> SpaceAccentCyan
+        SpaceMicVisualVariant.WARNING -> SpaceWarningAmber
+        SpaceMicVisualVariant.PROCESSING -> SpaceAccentBlue
+        SpaceMicVisualVariant.ERROR -> SpaceErrorRed
     }
 
     val statusText = when (state) {
@@ -397,8 +356,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.MicArea(
             .weight(1f),
         contentAlignment = Alignment.Center
     ) {
-        val micSize = (maxHeight * 0.65f).coerceAtMost(120.dp)
-        val micIconSize = micSize * 0.4f
+        val micSize = (maxHeight * 0.68f).coerceAtMost(156.dp)
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -407,20 +365,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.MicArea(
             Box(
                 modifier = Modifier
                     .size(micSize)
-                    .scale(pulseScale)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            state == ViewManager.STATE_ERROR -> stateColor.copy(alpha = 0.92f)
-                            isFilledState -> stateColor
-                            else -> stateColor.copy(alpha = 0.15f)
-                        }
-                    )
-                    .border(
-                        width = if (isFilledState) 0.dp else 2.dp,
-                        color = if (isFilledState) Color.Transparent else stateColor.copy(alpha = 0.5f),
-                        shape = CircleShape
-                    )
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
@@ -435,22 +379,22 @@ private fun androidx.compose.foundation.layout.ColumnScope.MicArea(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isFilledState) Color.White else stateColor,
-                    modifier = Modifier.size(micIconSize)
+                SpaceMicVisual(
+                    variant = visualVariant,
+                    icon = icon,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = statusText.uppercase(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.4.sp,
                 textAlign = TextAlign.Center,
-                color = stateColor.copy(alpha = 0.9f),
+                color = statusColor.copy(alpha = 0.96f),
                 modifier = Modifier
                     .padding(horizontal = 24.dp)
                     .then(
@@ -468,7 +412,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.MicArea(
 @Composable
 private fun BottomBar(
     enabled: Boolean,
-    onBg: Color,
     actionLabel: String,
     actionVisual: ViewManager.EnterActionVisual,
     onToggleMode: () -> Unit,
@@ -482,21 +425,19 @@ private fun BottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         ControlButton(
             icon = Icons.Default.Keyboard,
             enabled = enabled,
-            backgroundColor = DarkSurfaceVariant,
-            tint = onBg.copy(alpha = if (enabled) 0.7f else 0.35f),
+            accentColor = SpaceAccentCyan,
             onClick = onToggleMode
         )
 
         SpaceBar(
             enabled = enabled,
-            onBg = onBg,
             onInsertSpace = onInsertSpace,
             onCursorLeft = onCursorLeft,
             onCursorRight = onCursorRight,
@@ -505,15 +446,13 @@ private fun BottomBar(
 
         BackspaceButton(
             enabled = enabled,
-            onBg = onBg,
             onBackspace = onBackspace
         )
 
         ControlButton(
             icon = Icons.Default.Settings,
             enabled = enabled,
-            backgroundColor = DarkSurfaceVariant,
-            tint = onBg.copy(alpha = if (enabled) 0.7f else 0.35f),
+            accentColor = SpaceAccentBlue,
             onClick = onSettings
         )
 
@@ -521,7 +460,6 @@ private fun BottomBar(
             label = actionLabel,
             visual = actionVisual,
             enabled = enabled,
-            onBg = onBg,
             onClick = onEnter
         )
     }
@@ -531,24 +469,25 @@ private fun BottomBar(
 private fun ControlButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     enabled: Boolean,
-    backgroundColor: Color,
-    tint: Color,
+    accentColor: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
+    SpacePanel(
         modifier = modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.45f))
+            .size(52.dp)
             .clickable(enabled = enabled, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.5f),
+        shape = RoundedCornerShape(16.dp),
+        borderColor = if (enabled) SpaceOutline.copy(alpha = 0.82f) else SpaceOutline.copy(alpha = 0.28f),
+        backgroundBrush = spacePanelBrush(alpha = if (enabled) 0.95f else 0.56f)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
+        SpaceControlIcon(
+            icon = icon,
+            tint = SpaceTextPrimary,
+            glowColor = accentColor,
+            enabled = enabled,
+            modifier = Modifier.size(22.dp)
         )
     }
 }
@@ -556,7 +495,6 @@ private fun ControlButton(
 @Composable
 private fun SpaceBar(
     enabled: Boolean,
-    onBg: Color,
     onInsertSpace: () -> Unit,
     onCursorLeft: () -> Unit,
     onCursorRight: () -> Unit,
@@ -565,58 +503,58 @@ private fun SpaceBar(
     val dragStepPx = with(LocalDensity.current) { 18.dp.toPx() }
     var accumulatedDrag by remember { mutableFloatStateOf(0f) }
 
-    Box(
-        contentAlignment = Alignment.Center,
+    SpacePanel(
         modifier = modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (enabled) DarkSurfaceVariant else DarkSurfaceVariant.copy(alpha = 0.45f))
+            .height(52.dp)
             .clickable(enabled = enabled, onClick = onInsertSpace)
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectHorizontalDragGestures(
-                    onDragStart = { accumulatedDrag = 0f },
-                    onDragCancel = { accumulatedDrag = 0f },
-                    onDragEnd = { accumulatedDrag = 0f }
-                ) { change, dragAmount ->
-                    change.consume()
-                    accumulatedDrag += dragAmount
+            .alpha(if (enabled) 1f else 0.52f),
+        shape = RoundedCornerShape(16.dp),
+        borderColor = if (enabled) SpaceOutlineStrong.copy(alpha = 0.86f) else SpaceOutline.copy(alpha = 0.26f),
+        backgroundBrush = spacePanelBrush(alpha = if (enabled) 0.98f else 0.58f)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    detectHorizontalDragGestures(
+                        onDragStart = { accumulatedDrag = 0f },
+                        onDragCancel = { accumulatedDrag = 0f },
+                        onDragEnd = { accumulatedDrag = 0f }
+                    ) { change, dragAmount ->
+                        change.consume()
+                        accumulatedDrag += dragAmount
 
-                    while (abs(accumulatedDrag) >= dragStepPx) {
-                        if (accumulatedDrag > 0f) {
-                            onCursorRight()
-                            accumulatedDrag -= dragStepPx
-                        } else {
-                            onCursorLeft()
-                            accumulatedDrag += dragStepPx
+                        while (abs(accumulatedDrag) >= dragStepPx) {
+                            if (accumulatedDrag > 0f) {
+                                onCursorRight()
+                                accumulatedDrag -= dragStepPx
+                            } else {
+                                onCursorLeft()
+                                accumulatedDrag += dragStepPx
+                            }
                         }
                     }
-                }
-            }
-    ) {
-        Text(
-            text = "SPACE",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 1.sp,
-            color = onBg.copy(alpha = if (enabled) 0.7f else 0.35f),
-            textAlign = TextAlign.Center
-        )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            SpaceWordmark(
+                text = "SPACE",
+                fontSize = 18.sp
+            )
+        }
     }
 }
 
 @Composable
 private fun BackspaceButton(
     enabled: Boolean,
-    onBg: Color,
     onBackspace: () -> Unit
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
+    SpacePanel(
         modifier = Modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (enabled) DarkSurfaceVariant else DarkSurfaceVariant.copy(alpha = 0.45f))
+            .size(52.dp)
+            .alpha(if (enabled) 1f else 0.5f)
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
                 detectTapGestures(
@@ -641,13 +579,17 @@ private fun BackspaceButton(
                     },
                     onTap = { onBackspace() }
                 )
-            }
+            },
+        shape = RoundedCornerShape(16.dp),
+        borderColor = if (enabled) SpaceOutline.copy(alpha = 0.82f) else SpaceOutline.copy(alpha = 0.28f),
+        backgroundBrush = spacePanelBrush(alpha = if (enabled) 0.95f else 0.56f)
     ) {
-        Icon(
-            imageVector = Icons.Default.Backspace,
-            contentDescription = null,
-            tint = onBg.copy(alpha = if (enabled) 0.7f else 0.35f),
-            modifier = Modifier.size(20.dp)
+        SpaceControlIcon(
+            icon = androidx.compose.material.icons.Icons.Default.Backspace,
+            tint = SpaceTextPrimary,
+            glowColor = SpaceAccentCyan,
+            enabled = enabled,
+            modifier = Modifier.size(22.dp)
         )
     }
 }
@@ -657,22 +599,23 @@ private fun ActionButton(
     label: String,
     visual: ViewManager.EnterActionVisual,
     enabled: Boolean,
-    onBg: Color,
     onClick: () -> Unit
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
+    SpacePanel(
         modifier = Modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (enabled) DarkSurfaceVariant else DarkSurfaceVariant.copy(alpha = 0.45f))
+            .size(52.dp)
             .clickable(enabled = enabled, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.5f),
+        shape = RoundedCornerShape(16.dp),
+        borderColor = if (enabled) SpaceOutline.copy(alpha = 0.82f) else SpaceOutline.copy(alpha = 0.28f),
+        backgroundBrush = spacePanelBrush(alpha = if (enabled) 0.95f else 0.56f)
     ) {
-        Icon(
-            imageVector = enterActionIcon(visual),
-            contentDescription = label,
-            tint = onBg.copy(alpha = if (enabled) 0.78f else 0.35f),
-            modifier = Modifier.size(20.dp)
+        SpaceControlIcon(
+            icon = enterActionIcon(visual),
+            tint = SpaceTextPrimary,
+            glowColor = SpaceAccentBlue,
+            enabled = enabled,
+            modifier = Modifier.size(22.dp)
         )
     }
 }
@@ -698,20 +641,23 @@ private fun AudioDevicePopup(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
+            .background(Color.Black.copy(alpha = 0.72f))
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.Center
     ) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            backgroundColor = DarkSurfaceVariant,
+        SpacePanel(
             modifier = Modifier.fillMaxSize(0.8f)
+                .clickable(enabled = false, onClick = {}),
+            shape = RoundedCornerShape(22.dp),
+            borderColor = SpaceOutlineStrong.copy(alpha = 0.78f),
+            backgroundBrush = spacePanelBrush(alpha = 0.98f)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = stringResource(id = R.string.mic_audio_device_title),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
+                    color = SpaceTextPrimary,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
@@ -722,25 +668,32 @@ private fun AudioDevicePopup(
                         .weight(1f)
                 ) {
                     items(devices) { device ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        SpacePanel(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .clickable { onDeviceSelected(device) }
-                                .padding(12.dp)
+                                .clickable { onDeviceSelected(device) },
+                            shape = RoundedCornerShape(16.dp),
+                            borderColor = SpaceOutline.copy(alpha = 0.68f),
+                            backgroundBrush = spacePanelBrush(alpha = 0.9f)
                         ) {
-                            Icon(
-                                imageVector = device.toIcon(),
-                                contentDescription = null,
-                                tint = MaterialTheme.colors.primary
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = device.describe(),
-                                fontSize = 14.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                            ) {
+                                SpaceControlIcon(
+                                    icon = device.toIcon(),
+                                    glowColor = SpaceAccentBlue,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = device.describe(),
+                                    fontSize = 14.sp,
+                                    color = SpaceTextPrimary
+                                )
+                            }
                         }
                     }
                 }
@@ -749,26 +702,32 @@ private fun AudioDevicePopup(
     }
 }
 
+private fun micVisualVariant(state: Int): SpaceMicVisualVariant {
+    return when (state) {
+        ViewManager.STATE_LISTENING -> SpaceMicVisualVariant.LISTENING
+        ViewManager.STATE_LIMIT_WARNING -> SpaceMicVisualVariant.WARNING
+        ViewManager.STATE_LOADING, ViewManager.STATE_PROCESSING -> SpaceMicVisualVariant.PROCESSING
+        ViewManager.STATE_ERROR -> SpaceMicVisualVariant.ERROR
+        else -> SpaceMicVisualVariant.IDLE
+    }
+}
+
+private fun micIcon(state: Int): ImageVector {
+    return when (state) {
+        ViewManager.STATE_INITIAL, ViewManager.STATE_READY, ViewManager.STATE_PAUSED -> Icons.Default.MicNone
+        ViewManager.STATE_ERROR -> Icons.Default.MicOff
+        else -> Icons.Default.Mic
+    }
+}
+
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun IMETheme(
     prefs: AppPrefs,
     content: @Composable () -> Unit
 ) {
-    val colors = darkColors(
-        primary = if (prefs.uiNightForegroundMaterialYou.get()) {
-            colorResource(id = R.color.materialYouForeground)
-        } else {
-            Color(prefs.uiNightForeground.get())
-        },
-        background = Color(prefs.uiNightBackground.get()),
-        surface = DarkSurface,
-        onPrimary = Color.White,
-        onBackground = Color(0xFFE8E8E8),
-        onSurface = Color(0xFFE8E8E8)
-    )
-
     MaterialTheme(
-        colors = colors,
+        colors = spaceMaterialColors(),
         shapes = Shapes,
         content = content
     )

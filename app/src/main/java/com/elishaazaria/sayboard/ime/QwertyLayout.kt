@@ -23,12 +23,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,8 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
@@ -59,6 +58,17 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import com.elishaazaria.sayboard.Constants
 import com.elishaazaria.sayboard.data.HapticIntensity
+import com.elishaazaria.sayboard.theme.SpaceAccentBlue
+import com.elishaazaria.sayboard.theme.SpaceAccentCyan
+import com.elishaazaria.sayboard.theme.SpaceAccentPink
+import com.elishaazaria.sayboard.theme.SpaceControlIcon
+import com.elishaazaria.sayboard.theme.SpaceKeyColor
+import com.elishaazaria.sayboard.theme.SpaceOutline
+import com.elishaazaria.sayboard.theme.SpaceOutlineStrong
+import com.elishaazaria.sayboard.theme.SpaceSpecialKeyColor
+import com.elishaazaria.sayboard.theme.SpaceTextPrimary
+import com.elishaazaria.sayboard.theme.SpaceWordmark
+import com.elishaazaria.sayboard.theme.spacePanelBrush
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -82,8 +92,6 @@ private val SYMBOLS2_ROW_1 = listOf("~", "`", "|", "^", "<", ">", "{", "}")
 private val SYMBOLS2_ROW_2 = listOf("[", "]", "\\", "/", "_", "=")
 private val SYMBOLS2_ROW_3 = listOf("€", "£", "¥", "•", "°")
 
-private const val KEY_ALPHA = 0.18f
-private const val SPECIAL_KEY_ALPHA = 0.25f
 private const val PRESSED_ALPHA_BOOST = 0.12f
 private const val PRESSED_SCALE = 1.02f
 
@@ -109,6 +117,21 @@ fun QwertyLayout(
         { HapticHelper.tick(hapticFeedbackEnabled, hapticFeedbackIntensity) }
     }
 
+    // Match standard keyboard behavior: tap for one-shot shift, long-press for caps lock.
+    val onShiftTap = {
+        shiftState = when (shiftState) {
+            ShiftState.LOWER -> ShiftState.SHIFTED
+            ShiftState.SHIFTED, ShiftState.CAPS_LOCK -> ShiftState.LOWER
+        }
+    }
+    val onShiftLongPress = {
+        shiftState = if (shiftState == ShiftState.CAPS_LOCK) {
+            ShiftState.LOWER
+        } else {
+            ShiftState.CAPS_LOCK
+        }
+    }
+
     val onChar: (String) -> Unit = { text ->
         val output = when {
             symbolPage != SymbolPage.LETTERS -> text
@@ -121,16 +144,16 @@ fun QwertyLayout(
         }
     }
 
-    val keyBg = MaterialTheme.colors.onBackground.copy(alpha = KEY_ALPHA)
-    val specialKeyBg = MaterialTheme.colors.onBackground.copy(alpha = SPECIAL_KEY_ALPHA)
-    val textColor = MaterialTheme.colors.onBackground
-    val activeSpecialKeyBg = MaterialTheme.colors.primary.copy(alpha = 0.3f)
+    val keyBg = SpaceKeyColor
+    val specialKeyBg = SpaceSpecialKeyColor
+    val textColor = SpaceTextPrimary
+    val activeSpecialKeyBg = SpaceAccentBlue.copy(alpha = 0.72f)
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 4.dp, vertical = 3.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         when (symbolPage) {
             SymbolPage.LETTERS -> {
@@ -182,13 +205,8 @@ fun QwertyLayout(
                         bg = if (shiftState == ShiftState.LOWER) specialKeyBg else activeSpecialKeyBg,
                         textColor = textColor,
                         weight = 1.35f,
-                        onClick = {
-                            shiftState = when (shiftState) {
-                                ShiftState.LOWER -> ShiftState.SHIFTED
-                                ShiftState.SHIFTED -> ShiftState.CAPS_LOCK
-                                ShiftState.CAPS_LOCK -> ShiftState.LOWER
-                            }
-                        },
+                        onClick = onShiftTap,
+                        onLongPress = onShiftLongPress,
                         hapticFeedback = hapticFeedback
                     )
                     LETTERS_ROW_3.forEach { key ->
@@ -382,7 +400,7 @@ private fun ColumnScope.KeyRow(content: @Composable RowScope.() -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         content = content
     )
 }
@@ -421,7 +439,7 @@ private fun RowScope.CharKey(
         Text(
             text = display,
             color = textColor,
-            fontSize = 18.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )
@@ -435,34 +453,44 @@ private fun RowScope.SpecialKey(
     textColor: Color,
     weight: Float,
     onClick: () -> Unit,
+    onLongPress: (() -> Unit)? = null,
     hapticFeedback: () -> Unit
 ) {
     var isPressed by remember(label) { mutableStateOf(false) }
     val currentOnClick by rememberUpdatedState(onClick)
+    val currentOnLongPress by rememberUpdatedState(onLongPress)
     val currentHaptic by rememberUpdatedState(hapticFeedback)
 
     KeySurface(
         weight = weight,
         bg = bg,
         isPressed = isPressed,
-        modifier = Modifier.pointerInput(label) {
-            awaitEachGesture {
-                awaitFirstDown(requireUnconsumed = false)
-                isPressed = true
-                currentHaptic()
-                val up = waitForUpOrCancellation()
-                isPressed = false
-                if (up != null) {
+        modifier = Modifier.pointerInput(label, onLongPress != null) {
+            detectTapGestures(
+                onPress = {
+                    isPressed = true
+                    currentHaptic()
+                    try {
+                        tryAwaitRelease()
+                    } finally {
+                        isPressed = false
+                    }
+                },
+                onTap = {
                     currentOnClick()
+                },
+                onLongPress = {
+                    currentOnLongPress?.invoke()
                 }
-            }
+            )
         }
     ) {
         Text(
             text = label,
             color = textColor,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -514,10 +542,11 @@ private fun RowScope.BackspaceKey(
             )
         }
     ) {
-        Icon(
-            imageVector = Icons.Default.Backspace,
-            contentDescription = null,
-            tint = textColor.copy(alpha = 0.86f)
+        SpaceControlIcon(
+            icon = Icons.Default.Backspace,
+            tint = textColor,
+            glowColor = SpaceAccentPink,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -551,7 +580,7 @@ private fun ColumnScope.BottomUtilityRow(
         IconKey(
             icon = Icons.Default.Mic,
             bg = specialKeyBg,
-            tint = textColor.copy(alpha = 0.82f),
+            tint = textColor,
             weight = 1.1f,
             onClick = onToggleVoiceMode,
             hapticFeedback = hapticFeedback
@@ -615,10 +644,11 @@ private fun RowScope.IconKey(
             }
         }
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint
+        SpaceControlIcon(
+            icon = icon,
+            tint = tint,
+            glowColor = SpaceAccentCyan,
+            modifier = Modifier.size(18.dp)
         )
     }
 }
@@ -685,24 +715,10 @@ private fun RowScope.SpaceKey(
             }
         }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Language,
-                contentDescription = null,
-                tint = textColor.copy(alpha = 0.7f),
-                modifier = Modifier.padding(end = 6.dp)
-            )
-            Text(
-                text = "English",
-                color = textColor.copy(alpha = 0.82f),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            )
-        }
+        SpaceWordmark(
+            text = "SPACE",
+            fontSize = 16.sp
+        )
     }
 }
 
@@ -737,10 +753,11 @@ private fun RowScope.ActionKey(
             }
         }
     ) {
-        Icon(
-            imageVector = enterActionIcon(visual),
-            contentDescription = label,
-            tint = textColor.copy(alpha = 0.86f)
+        SpaceControlIcon(
+            icon = enterActionIcon(visual),
+            tint = textColor,
+            glowColor = SpaceAccentBlue,
+            modifier = Modifier.size(18.dp)
         )
     }
 }
@@ -765,6 +782,7 @@ private fun RowScope.KeySurface(
         animationSpec = tween(durationMillis = 90),
         label = "keyBg"
     )
+    val cornerRadius = RoundedCornerShape(14.dp)
 
     Box(
         modifier = Modifier
@@ -782,12 +800,24 @@ private fun RowScope.KeySurface(
                     scaleY = animatedScale
                 }
                 .shadow(
-                    elevation = if (isPressed) 6.dp else 0.dp,
-                    shape = RoundedCornerShape(8.dp),
+                    elevation = if (isPressed) 10.dp else 3.dp,
+                    shape = cornerRadius,
                     clip = false
                 )
-                .clip(RoundedCornerShape(8.dp))
-                .background(animatedBackground)
+                .clip(cornerRadius)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            animatedBackground.liftedColor(),
+                            animatedBackground
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (isPressed) SpaceOutlineStrong.copy(alpha = 0.92f) else animatedBackground.outlineColor(),
+                    shape = cornerRadius
+                )
                 .then(modifier),
             contentAlignment = Alignment.Center,
             content = content
@@ -798,7 +828,7 @@ private fun RowScope.KeySurface(
                 CharacterPreviewPopup(
                     text = popupText,
                     keyBounds = bounds,
-                    textColor = MaterialTheme.colors.onBackground
+                    textColor = SpaceTextPrimary
                 )
             }
         }
@@ -836,10 +866,10 @@ private fun CharacterPreviewPopup(
                     width = with(density) { popupWidthPx.toDp() },
                     height = with(density) { popupHeightPx.toDp() }
                 )
-                .shadow(14.dp, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colors.surface.copy(alpha = 0.98f))
-                .border(1.dp, textColor.copy(alpha = 0.08f), RoundedCornerShape(16.dp)),
+                .shadow(18.dp, RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp))
+                .background(spacePanelBrush(alpha = 0.98f))
+                .border(1.dp, SpaceOutlineStrong.copy(alpha = 0.85f), RoundedCornerShape(18.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -856,4 +886,10 @@ private fun String.uppercaseIfNeeded(shouldUppercase: Boolean): String =
     if (shouldUppercase) uppercase() else this
 
 private fun Color.pressedColor(): Color =
-    copy(alpha = (alpha + PRESSED_ALPHA_BOOST).coerceAtMost(0.55f))
+    lerp(this, SpaceAccentBlue, PRESSED_ALPHA_BOOST)
+
+private fun Color.liftedColor(): Color =
+    lerp(this, Color.White, 0.08f)
+
+private fun Color.outlineColor(): Color =
+    lerp(this, SpaceOutline, 0.55f).copy(alpha = 0.78f)
