@@ -57,6 +57,9 @@ class AppState: ObservableObject {
     }
 
     func startRecording() {
+        // Capture which app has focus BEFORE we start (so we can paste back to it)
+        textInsertionService.captureTargetPID()
+
         recognitionManager.reset()
         audioCaptureManager.startCapture { [weak self] samples, count in
             self?.recognitionManager.feedAudio(samples: samples, count: count)

@@ -57,7 +57,7 @@ class SettingsManager: ObservableObject {
 
     var openaiApiKey: String {
         get { defaults.string(forKey: Keys.openaiApiKey) ?? "" }
-        set { defaults.set(newValue, forKey: Keys.openaiApiKey) }
+        set { defaults.set(newValue, forKey: Keys.openaiApiKey); objectWillChange.send() }
     }
 
     var whisperLanguage: String {
@@ -72,7 +72,7 @@ class SettingsManager: ObservableObject {
 
     var sarvamApiKey: String {
         get { defaults.string(forKey: Keys.sarvamApiKey) ?? "" }
-        set { defaults.set(newValue, forKey: Keys.sarvamApiKey) }
+        set { defaults.set(newValue, forKey: Keys.sarvamApiKey); objectWillChange.send() }
     }
 
     var sarvamLanguage: String {

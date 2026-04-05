@@ -1,5 +1,9 @@
 import Cocoa
 
+extension Notification.Name {
+    static let accessibilityPermissionNeeded = Notification.Name("accessibilityPermissionNeeded")
+}
+
 enum AccessibilityHelper {
     /// Check if the app has Accessibility permission, and prompt the user if not.
     @discardableResult
