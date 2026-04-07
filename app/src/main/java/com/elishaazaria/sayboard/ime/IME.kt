@@ -141,6 +141,12 @@ class IME : InputMethodService(), ModelManager.Listener {
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         Log.d("IME", "@onStartInputView, info: $info, restarting: $restarting")
 
+        // Re-attach lifecycle owner to decorView on every input view start.
+        // The decorView can be recreated by the system during long idle periods
+        // (memory pressure, process recreation), and onCreateInputView() is only
+        // called once per service lifetime.
+        lifecycleOwner.attachToDecorView(window?.window?.decorView)
+
         checkMicrophonePermission()
         editorInfo = info
         resolveEnterKey()

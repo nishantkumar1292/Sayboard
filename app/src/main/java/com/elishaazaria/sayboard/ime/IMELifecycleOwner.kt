@@ -27,10 +27,12 @@ class IMELifecycleOwner :
     }
 
     fun onResume() {
+        if (lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
     fun onPause() {
+        if (!lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
